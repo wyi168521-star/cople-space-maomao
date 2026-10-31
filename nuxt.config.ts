@@ -1,5 +1,10 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import tailwindcss from '@tailwindcss/vite'
+
 export default defineNuxtConfig({
+  // 登录、配对和首页使用 Nuxt 文件路由；会话由客户端统一初始化。
+  pages: true,
+  css: ['~/assets/css/index.css'],
   app: {
     head: {
       viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
@@ -21,6 +26,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   vite: {
+    plugins: [tailwindcss()],
     optimizeDeps: {
       include: ['@capacitor/core', '@capacitor/geolocation'],
     },
@@ -39,6 +45,12 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
+    // 私有配置：仅 Nitro 服务端读取，不能放进 public。
+    // 生产使用 NUXT_DEEPSEEK_API_KEY 运行时注入；DEEPSEEK_API_KEY 由服务端请求时读取。
+    // 不把真实密钥作为构建默认值写进产物。
+    deepseekApiKey: '',
+    // deepseek-chat 已被官方停用；可通过私有环境变量调整模型。
+    deepseekModel: process.env.DEEPSEEK_MODEL || 'deepseek-flash',
     public: {
       supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL || '',
       supabaseAnonKey: process.env.NUXT_PUBLIC_SUPABASE_ANON_KEY || '',
@@ -46,8 +58,7 @@ export default defineNuxtConfig({
       turnUrls: process.env.NUXT_PUBLIC_TURN_URLS || process.env.NUXT_PUBLIC_TURN_URL || '',
       turnUsername: process.env.NUXT_PUBLIC_TURN_USERNAME || '',
       turnCredential: process.env.NUXT_PUBLIC_TURN_CREDENTIAL || '',
-      zegoAppId: process.env.NUXT_PUBLIC_ZEGO_APP_ID || '1962051148',
-      zegoAppSign: process.env.NUXT_PUBLIC_ZEGO_APPSIGN || '',
+      zegoAppId: process.env.NUXT_PUBLIC_ZEGO_APP_ID || '',
       zegoServer: process.env.NUXT_PUBLIC_ZEGO_SERVER || 'wss://webliveroom-api.zego.im/ws',
       amapKey: process.env.NUXT_PUBLIC_AMAP_KEY || '',
       amapSecurityCode: process.env.NUXT_PUBLIC_AMAP_SECURITY_CODE || '',

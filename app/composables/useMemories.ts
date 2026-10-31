@@ -52,7 +52,7 @@ export function useMemories() {
   function loadDemo() {
     const saved = localStorage.getItem('couple-space-memories')
     const rows = saved ? JSON.parse(saved) : demoSeed
-    memories.value = (Array.isArray(rows) ? rows : []).map((memory: Memory) => ({ favoriteCount: 0, isFavorite: false, reactions: {}, comments: [], ...memory }))
+    memories.value = (Array.isArray(rows) ? rows : []).map((memory: Memory) => ({ ...memory, favoriteCount: memory.favoriteCount ?? 0, isFavorite: memory.isFavorite ?? false, reactions: memory.reactions ?? {}, comments: memory.comments ?? [] }))
     memoriesLoaded.value = true
   }
 
@@ -221,15 +221,19 @@ export function useMemories() {
   }
 
   async function createMemory(input: Omit<Memory, 'id' | 'authorId' | 'authorName' | 'createdAt'>, files: File[]) {
+    const member = profile.value
+    if ($supabase && !demoMode.value && !member?.coupleId) throw new Error('请先加入情侣空间')
     const uploadedPhotos = await uploadPhotos(files)
     const photos = [...input.photos, ...uploadedPhotos]
     if (!$supabase || demoMode.value) {
       memories.value.unshift({ ...input, photos, id: crypto.randomUUID(), authorId: profile.value?.id || 'demo-user',authorName:profile.value?.displayName||'我', createdAt: new Date().toISOString() })
       memories.value.sort((a, b) => b.memoryDate.localeCompare(a.memoryDate)); saveDemo(); void recordActivity('memory'); return
     }
-    const { error } = await $supabase.from('memories').insert({ couple_id: profile.value!.coupleId, author_id: profile.value!.id, content: input.content, memory_date: input.memoryDate, location: input.location || null, photos: photos.map(({ path, thumbPath, mediumPath, originalPath }) => ({ path, thumbPath, mediumPath, originalPath })) })
+    if (!member?.coupleId) throw new Error('请先加入情侣空间')
+    const title = Array.from(input.content.split('\n')[0] || '').slice(0, 120).join('')
+    const { error } = await $supabase.from('memories').insert({ couple_id: member.coupleId, author_id: member.id, content: input.content, body: input.content, title, memory_date: input.memoryDate, date: input.memoryDate, location: input.location || null, photos: photos.map(({ path, thumbPath, mediumPath, originalPath }) => ({ path, thumbPath, mediumPath, originalPath })) })
     if (error) {
-      const paths = [...new Set(uploadedPhotos.flatMap(photo => [photo.path, photo.thumbPath, photo.mediumPath, photo.originalPath]).filter(Boolean))]
+      const paths = [...new Set(uploadedPhotos.flatMap(photo => [photo.path, photo.thumbPath, photo.mediumPath, photo.originalPath]).filter((path): path is string => Boolean(path)))]
       if (paths.length) await $supabase.storage.from('memory-photos').remove(paths).catch(() => undefined)
       throw error
     }
@@ -246,7 +250,7 @@ export function useMemories() {
     }
     const { error } = await $supabase.from('memories').update({ content: input.content, memory_date: input.memoryDate, location: input.location || null, photos: photos.map(({ path, thumbPath, mediumPath, originalPath }) => ({ path, thumbPath, mediumPath, originalPath })), updated_at: new Date().toISOString() }).eq('id', id)
     if (error) {
-      const paths = [...new Set(uploadedPhotos.flatMap(photo => [photo.path, photo.thumbPath, photo.mediumPath, photo.originalPath]).filter(Boolean))]
+      const paths = [...new Set(uploadedPhotos.flatMap(photo => [photo.path, photo.thumbPath, photo.mediumPath, photo.originalPath]).filter((path): path is string => Boolean(path)))]
       if (paths.length) await $supabase.storage.from('memory-photos').remove(paths).catch(() => undefined)
       throw error
     }
@@ -255,7 +259,7 @@ export function useMemories() {
 
   async function deleteMemory(memory: Memory) {
     if (!$supabase || demoMode.value) { memories.value = memories.value.filter(item => item.id !== memory.id); saveDemo(); return }
-    const paths = [...new Set(memory.photos.flatMap(photo => [photo.path, photo.thumbPath, photo.mediumPath, photo.originalPath]).filter(Boolean))]
+    const paths = [...new Set(memory.photos.flatMap(photo => [photo.path, photo.thumbPath, photo.mediumPath, photo.originalPath]).filter((path): path is string => Boolean(path)))]
     if (paths.length) await $supabase.storage.from('memory-photos').remove(paths)
     const { error } = await $supabase.from('memories').delete().eq('id', memory.id)
     if (error) throw error

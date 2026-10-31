@@ -1,0 +1,23 @@
+.love-dashboard { min-width: 0; margin: 30px 0; }
+.love-dashboard__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.love-dashboard__eyebrow { margin: 0 0 5px; color: var(--muted); font-size: 9px; letter-spacing: .13em; }
+.love-flow .love-dashboard h2 { margin: 0; color: var(--ink); font-size: clamp(15px, 2.5vw, 18px); letter-spacing: -.025em; line-height: 1.6; }
+.love-dashboard__refresh { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 14px; background: var(--lavender-soft); color: var(--lavender-deep); transition: background .2s; }
+.love-dashboard__refresh:hover:enabled { background: var(--pink-soft); }
+.love-dashboard__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.love-dashboard__card { min-width: 0; padding: 17px 14px 14px; border-radius: 18px; box-shadow: 0 6px 22px rgba(117, 70, 162, .045); }
+.love-dashboard__icon { color: var(--lavender-deep); margin-bottom: 10px; }
+.love-dashboard__card:nth-child(even) .love-dashboard__icon { color: color-mix(in srgb, var(--pink), var(--ink) 30%); }
+.love-dashboard__card h3 { margin: 0; color: var(--ink); font-size: 12px; font-weight: 650; }
+.love-dashboard__value { display: flex; align-items: baseline; gap: 5px; min-height: 47px; margin-top: 4px; white-space: nowrap; }
+.love-dashboard__number { display: inline-block; color: var(--lavender-deep); font-size: clamp(25px, 3.5vw, 31px); font-weight: 800; line-height: 1.5; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+.love-dashboard__unit { color: var(--muted); font-size: 10px; }
+.love-dashboard__card > p { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.7; }
+.love-dashboard__footnote { min-height: 19px; margin: 13px 0 0; color: var(--muted); font-size: 10px; }
+.love-dashboard__error { margin-top: 13px; color: var(--lavender-deep); font-size: 11px; overflow-wrap: anywhere; }
+.love-dashboard__error p { margin: 4px 0; }
+.love-home-duration { margin: 0 0 24px; }
+.love-flow .love-home-duration.layout-inline .time-unit strong,
+.love-flow .love-home-duration.layout-inline .time-unit:first-child strong { font-size: clamp(20px, 3vw, 36px) !important; }
+@media (min-width: 800px) { .love-dashboard__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; } }
+@media (prefers-reduced-motion: reduce) { .love-dashboard__refresh, .love-dashboard__refresh svg { animation: none; transition: none; } }

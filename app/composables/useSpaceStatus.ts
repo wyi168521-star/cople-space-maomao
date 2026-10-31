@@ -14,7 +14,7 @@ const networkOnline = ref(true)
 const lastSyncAt = ref('')
 let listenersReady = false
 
-function withTimeout<T>(promise: Promise<T>, timeout = 8000) {
+function withTimeout<T>(promise: PromiseLike<T>, timeout = 8000) {
   return Promise.race([promise, new Promise<T | null>(resolve => globalThis.setTimeout(() => resolve(null), timeout))])
 }
 

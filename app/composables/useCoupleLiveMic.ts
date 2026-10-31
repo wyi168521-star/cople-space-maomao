@@ -46,7 +46,6 @@ function getAudioElement() {
   if (audioElement) return audioElement
   audioElement = document.createElement('audio')
   audioElement.autoplay = true
-  audioElement.playsInline = true
   audioElement.setAttribute('playsinline', '')
   audioElement.setAttribute('aria-hidden', 'true')
   audioElement.style.position = 'fixed'

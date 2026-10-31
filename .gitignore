@@ -4,6 +4,9 @@
 .nuxt
 .nitro
 .cache
+.nuxt-preflight
+.output-preflight
+.vercel
 dist
 desktop-dist
 zego-token-generator-*.tgz
@@ -12,6 +15,8 @@ zego-token-generator-*.tgz
 node_modules
 .playwright
 test-results
+coverage
+*.tsbuildinfo
 
 # Logs
 logs
@@ -24,8 +29,10 @@ logs
 
 # Local env files
 .env
+.env.local
 .env.*
 !.env.example
+!.env.production.example
 android/app/google-services.json
 firebase-service-account.json
 

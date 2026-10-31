@@ -1,0 +1,95 @@
+@import '@fontsource-variable/manrope/index.css';
+@import '@fontsource-variable/nunito-sans/index.css';
+@import './font-aliases.css';
+
+/* Tailwind v4 完整入口；既有业务样式继续由 legacy.css 补充。 */
+@import "tailwindcss";
+@import '../../styles/legacy.css';
+
+/* 全站主题的唯一入口；保留原版色值，避免在 legacy.css 中重复定义。 */
+:root {
+  --bg: #fff9fd;
+  --surface: rgba(255, 250, 255, 0.76);
+  --surface-solid: #ffffff;
+  --lavender: #b46ee3;
+  --lavender-deep: #7546a2;
+  --lavender-soft: #f0dcff;
+  --pink: #ee78a7;
+  --pink-soft: #ffe0ec;
+  --ink: #3e2947;
+  --muted: #8a748f;
+  --line: rgba(134, 76, 158, 0.14);
+  /* 完整阴影值：通过 box-shadow: var(--shadow) 使用。 */
+  --shadow: 0 24px 65px rgba(111, 63, 136, 0.14);
+
+  --luxe-plum: #59255f;
+  --luxe-orchid: #9a58d5;
+  --luxe-rose: #ec6fa7;
+  --luxe-sky: #79b9ed;
+  --luxe-pearl: rgba(255, 250, 255, 0.76);
+
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--bg);
+}
+
+/* static 让这些变量始终输出，也可直接通过 var() 供组件使用。 */
+@theme static {
+  --color-blush: #f5e6f0;
+  --color-lavender: #c9a0dc;
+  --color-rose-dust: #e8b4b8;
+  --color-glass: rgba(255, 255, 255, 0.72);
+  --font-sans: "Manrope", "Nunito Sans", sans-serif;
+  --radius-card: 1.25rem;
+  --radius-love-card: 1.5rem;
+}
+
+/* 复用仓库现有设计变量，供新组件与 Tailwind 工具类共同使用。 */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface-solid);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--lavender-deep);
+  --color-line: var(--line);
+  --font-display: 'Manrope Variable', 'Microsoft YaHei', sans-serif;
+  --shadow-glass: var(--shadow);
+
+  /* love 前缀供计时器、时光轴及后续页面独立复用。 */
+  --color-love-bg: var(--bg);
+  --color-love-surface: var(--surface);
+  --color-love-ink: var(--ink);
+  --color-love-muted: var(--muted);
+  --color-love-accent: var(--lavender-deep);
+  --color-love-lavender: var(--lavender);
+  --color-love-pink: var(--pink);
+  --color-love-line: var(--line);
+  --shadow-love-glass: var(--shadow);
+}
+
+/* 独立的玻璃卡片，不依赖旧组件的 glass-panel 或 !important 覆盖。 */
+.love-glass {
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: var(--radius-love-card);
+  color: var(--ink);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.78),
+    rgba(255, 242, 251, 0.60)
+  );
+  box-shadow:
+    0 18px 44px rgba(96, 44, 108, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+}
+
+/* 小屏使用更实的表面，减少滚动时背景模糊的开销。 */
+@media (max-width: 650px) {
+  .love-glass {
+    background: rgba(255, 250, 255, 0.94);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

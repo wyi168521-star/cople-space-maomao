@@ -1,0 +1,99 @@
+/* Shared route styles are namespaced to preserve the rest of the app's palette. */
+.love-flow {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: max(28px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  background: radial-gradient(ellipse at 9% 12%, rgba(233, 205, 251, .7), transparent 48%), radial-gradient(ellipse at 90% 88%, rgba(252, 206, 226, .6), transparent 48%), linear-gradient(135deg, #faf3fd, #fff4f8 60%, #f0f2ff);
+  color: var(--ink, #3e2947);
+  font-family: 'Manrope Variable', 'Microsoft YaHei', sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+}
+.love-flow button, .love-flow input, .love-flow textarea { font: inherit; }
+.love-flow button { cursor: pointer; }
+.love-flow button:disabled { cursor: wait; opacity: .6; }
+.love-flow button:focus-visible, .love-flow input:focus-visible, .love-flow textarea:focus-visible { outline: 3px solid #a46dc2; outline-offset: 3px; }
+.love-flow__layout { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr); gap: clamp(40px, 7vw, 110px); align-items: center; width: min(1080px, 100%); min-height: calc(100vh - 56px); min-height: calc(100dvh - 56px); margin: 0 auto; }
+.love-flow__intro { padding: 28px 0; }
+.love-flow__brand { display: flex; align-items: center; gap: 11px; color: #603274; font-size: 21px; font-weight: 800; letter-spacing: .02em; }
+.love-flow__brand > span { display: grid; place-items: center; width: 43px; height: 43px; border: 1px solid rgba(255,255,255,.9); border-radius: 15px; background: linear-gradient(140deg, #dcbeef, #f7cadc); color: #8b4ca9; box-shadow: 0 6px 18px rgba(133, 74, 156, .1); }
+.love-flow__intro > .love-flow__eyebrow { margin-top: 62px; }
+.love-flow h1, .love-flow h2 { color: #51305f; font-weight: 800; letter-spacing: -.035em; }
+.love-flow__intro h1 { margin: 13px 0 22px; font-size: clamp(35px, 4.3vw, 51px); line-height: 1.42; }
+.love-flow__intro-copy { margin: 0; color: #79637f; font-size: 16px; line-height: 1.95; }
+.love-flow__eyebrow { margin: 0 0 8px; color: #8a5099; font-size: 13px; font-weight: 800; letter-spacing: .08em; }
+.love-flow__keepsake { position: relative; display: flex; flex-direction: column; align-items: flex-start; width: min(320px, 90%); gap: 4px; margin: 43px 0 26px 8px; padding: 24px 27px; border: 1px solid rgba(255,255,255,.95); border-radius: 21px; background: linear-gradient(125deg, rgba(255,255,255,.74), rgba(255,247,253,.54)); box-shadow: 0 16px 34px rgba(124,77,147,.09); transform: rotate(-3deg); }
+.love-flow__little-heart { color: #bd6f98; font-size: 33px; line-height: 1; }
+.love-flow__keepsake-date { margin-top: 12px; color: #9d7fa7; font-size: 10px; letter-spacing: .16em; }
+.love-flow__intro-footer { display: flex; align-items: center; gap: 7px; margin: 0; color: #84688d; font-size: 12px; }
+.love-flow__card { width: 100%; border-radius: 28px; }
+.love-flow__card h1, .love-flow__card h2 { margin: 0 0 12px; font-size: clamp(25px, 3vw, 31px); line-height: 1.4; }
+.love-flow__description { margin: 0 0 22px; color: #76637e; font-size: 14px; line-height: 1.85; }
+.love-flow__email { overflow-wrap: anywhere; }
+.love-flow__tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; margin: 25px 0; padding: 5px; border: 1px solid rgba(175, 135, 196, .15); border-radius: 17px; background: rgba(228, 210, 241, .45); }
+.love-flow__tabs button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 46px; padding: 8px 10px; border: 0; border-radius: 12px; background: transparent; color: #7c6485; font-size: 14px; font-weight: 700; }
+.love-flow__tabs button[aria-selected='true'] { background: rgba(255,255,255,.93); color: #75449a; box-shadow: 0 4px 12px rgba(119,77,140,.1); }
+.love-flow__form fieldset { display: grid; min-width: 0; gap: 18px; margin: 0; padding: 0; border: 0; }
+.love-flow__field { display: grid; gap: 8px; min-width: 0; }
+.love-flow__field > label { color: #674b73; font-size: 13px; font-weight: 750; }
+.love-flow__input-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 51px; padding: 0 15px; border: 1px solid #dbc9e5; border-radius: 14px; background: rgba(255,255,255,.72); color: #9d7aaf; transition: border-color .18s ease, box-shadow .18s ease; }
+.love-flow__input-wrap > svg { flex: 0 0 auto; }
+.love-flow__input-wrap:focus-within { border-color: #a66fc4; box-shadow: 0 0 0 3px rgba(171, 116, 198, .12); }
+.love-flow__input-wrap input { width: 100%; min-width: 0; min-height: 49px; padding: 10px 0; border: 0; outline: none; background: transparent; color: #4c3458; font-size: 14px; }
+.love-flow__input-wrap input:focus-visible { outline: none; }
+.love-flow__input-wrap input::placeholder { color: #a18ca9; opacity: 1; }
+.love-flow__input-wrap input:disabled { opacity: .7; }
+.love-flow__hint { display: block; margin: 0; color: #86718e; font-size: 12px; line-height: 1.7; }
+.love-flow__primary { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; min-height: 51px; padding: 12px 18px; border: 0; border-radius: 15px; background: linear-gradient(110deg, #8c56b4, #b968ae 64%, #d080ac); box-shadow: 0 9px 22px rgba(145,83,165,.19); color: #fff; font-size: 14px; font-weight: 800; transition: filter .18s ease, transform .18s ease; }
+.love-flow__primary:hover:enabled { filter: brightness(1.05); transform: translateY(-1px); }
+.love-flow__text-button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; margin: 14px auto 0; padding: 9px 12px; border: 0; border-radius: 10px; background: transparent; color: #805295; font-size: 13px; font-weight: 700; }
+.love-flow__text-button:hover:enabled { background: rgba(226,205,240,.28); }
+.love-flow__notice, .love-flow__error, .love-flow__success { margin: 0 0 15px; padding: 11px 13px; border: 1px solid transparent; border-radius: 12px; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.love-flow__form .love-flow__error { margin: 0; }
+.love-flow__notice { border-color: #e0cde9; background: #f5ecfb; color: #755584; }
+.love-flow__error { border-color: #efc6d4; background: #fff1f5; color: #9e345b; }
+.love-flow__success { border-color: #cbe3d9; background: #f0faf4; color: #38795b; }
+.love-flow__footnote { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 23px 0 0; color: #8d7495; font-size: 12px; overflow-wrap: anywhere; }
+.love-flow__icon { display: grid; place-items: center; width: 68px; height: 68px; margin: 0 0 24px; border: 1px solid rgba(255,255,255,.9); border-radius: 23px; background: linear-gradient(140deg, #ebd6f8, #ffe4ed); color: #a464b0; }
+.love-flow__centered-layout { width: min(530px, 100%); margin: 32px auto; }
+.love-flow__brand--center { justify-content: center; margin-bottom: 30px; }
+.love-flow__card--wide h1 { font-size: clamp(25px, 4vw, 29px); }
+.love-flow__account-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 26px; padding-top: 17px; border-top: 1px solid rgba(153,111,176,.15); }
+.love-flow__account-footer > span { min-width: 0; color: #8b7592; font-size: 12px; overflow-wrap: anywhere; }
+.love-flow__account-footer .love-flow__text-button { flex: 0 0 auto; margin: 0 -8px 0 0; }
+.love-flow__outside-note { margin: 24px 0 0; color: #8c7296; font-size: 12px; text-align: center; }
+.love-flow__home-layout { width: min(880px, 100%); margin: 4px auto 32px; }
+.love-flow__home-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 64px; }
+.love-flow__secondary { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 45px; padding: 10px 16px; border: 1px solid #e5d6eb; border-radius: 14px; background: rgba(255,255,255,.67); color: #7c558c; font-size: 13px; font-weight: 700; }
+.love-flow__home-card { width: min(600px, 100%); margin: 0 auto; border-radius: 28px; }
+.love-flow__home-card h1 { margin: 0 0 9px; color: #5c356b; font-size: clamp(28px, 5vw, 38px); overflow-wrap: anywhere; }
+.love-flow__date { margin: -8px 0 25px; color: #9978a5; font-size: 12px; }
+.love-flow__space-box { margin-top: 29px; padding: 23px; border: 1px solid rgba(182,150,199,.24); border-radius: 19px; background: rgba(255,255,255,.56); }
+.love-flow__space-box > label { color: #654777; font-size: 14px; font-weight: 800; }
+.love-flow__space-box > label > span { margin-left: 5px; color: #9b81a5; font-size: 11px; font-weight: 500; }
+.love-flow__space-box > p:not(.love-flow__copy-status) { margin: 7px 0 15px; color: #89728f; font-size: 12px; }
+.love-flow__space-id { display: block; width: 100%; min-height: 65px; margin-bottom: 9px; padding: 11px 10px; resize: none; border: 1px solid #dcc7e7; border-radius: 11px; background: rgba(247,239,251,.8); color: #754b8c; font-family: ui-monospace, Consolas, monospace !important; font-size: clamp(11px, 2.8vw, 14px) !important; line-height: 1.6; overflow-wrap: anywhere; }
+.love-flow__space-box .love-flow__primary { margin-top: 17px; }
+.love-flow__copy-status { min-height: 20px; margin: 10px 0 0; color: #735484; font-size: 12px; }
+.love-flow__spinner { animation: love-flow-spin .8s linear infinite; }
+@keyframes love-flow-spin { to { transform: rotate(360deg); } }
+@media (max-width: 760px) {
+  .love-flow { padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); }
+  .love-flow__layout { display: block; width: min(470px, 100%); min-height: 0; }
+  .love-flow__intro { padding: 6px 0 28px; }
+  .love-flow__intro > .love-flow__eyebrow { margin-top: 28px; }
+  .love-flow__intro h1 { margin: 8px 0 12px; font-size: 32px; }
+  .love-flow__intro-copy { font-size: 14px; }
+  .love-flow__keepsake, .love-flow__intro-footer { display: none; }
+  .love-flow__centered-layout { margin: 8px auto; }
+  .love-flow__brand--center { margin-bottom: 24px; }
+  .love-flow__home-header { margin-bottom: 35px; }
+  .love-flow__signout { padding: 9px 12px; font-size: 12px; }
+  .love-flow__brand { gap: 8px; font-size: 19px; }
+  .love-flow__brand > span { width: 39px; height: 39px; border-radius: 13px; }
+  .love-flow__space-box { padding: 18px 14px; }
+  .love-flow__account-footer { gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .love-flow *, .love-flow *::before, .love-flow *::after { animation: none !important; transition: none !important; }
+}

@@ -1,5 +1,17 @@
+import { compressAlbumImage } from '../utils/compressAlbumImage'
+
 export type MediaTransform = { width?: number; height?: number; quality?: number; resize?: 'cover' | 'contain' | 'fill' }
-type SupabaseLike = { supabaseUrl?: string; storage: { from: (bucket: string) => { upload: (path: string, file: File, options?: { contentType?: string; upsert?: boolean }) => Promise<{ error?: any }>; createSignedUrl: (path: string, expiresIn: number, options?: { transform?: MediaTransform }) => Promise<{ data?: { signedUrl?: string } | null; error?: unknown }>; createSignedUrls?: (paths: string[], expiresIn: number, options?: { transform?: MediaTransform }) => Promise<{ data?: Array<{ path?: string; signedUrl?: string }> | null; error?: unknown }> } }; auth?: { getSession: () => Promise<{ data?: { session?: { access_token?: string } | null } }> } }
+type SupabaseLike = {
+  resumableUploadUrl?: string
+  storage: {
+    from: (bucket: string) => {
+      upload: (path: string, file: File, options?: { contentType?: string; upsert?: boolean }) => Promise<{ error?: unknown }>
+      createSignedUrl: (path: string, expiresIn: number, options?: { transform?: MediaTransform }) => Promise<{ data?: { signedUrl?: string } | null; error?: unknown }>
+      createSignedUrls?: (paths: string[], expiresIn: number) => Promise<{ data?: Array<{ path?: string | null; signedUrl?: string | null }> | null; error?: unknown }>
+    }
+  }
+  auth?: { getSession: () => Promise<{ data?: { session?: { access_token?: string } | null } }> }
+}
 let resumableUploadsDisabled = false
 
 type CachedUrl = { url: string; expiresAt: number }
@@ -190,8 +202,10 @@ export async function createMediaSignedUrls(supabase: SupabaseLike | null | unde
     }))
     uncached.push(...uncachedItems.filter((item): item is { path: string; transform?: MediaTransform } => Boolean(item)))
     if (!uncached.length) return
-    if (api.createSignedUrls) {
-      const response = await withTimeout(api.createSignedUrls(uncached.map(item => item.path), expiresIn, uncached[0]?.transform ? { transform: uncached[0].transform } : undefined).catch(() => null))
+    // The batch signing endpoint does not support image transforms.
+    // Transformed images use the individual signing request below.
+    if (api.createSignedUrls && !uncached.some(item => item.transform)) {
+      const response = await withTimeout(api.createSignedUrls(uncached.map(item => item.path), expiresIn).catch(() => null))
       await Promise.all((response?.data || []).filter(item => item.path && item.signedUrl).map(async item => {
         const transform = uncached.find(candidate => candidate.path === item.path)?.transform
         const itemKey = cacheKey(bucket, item.path!, transform)
@@ -223,7 +237,8 @@ export async function refreshMediaElement(event: Event, supabase: SupabaseLike |
 }
 
 /** Shrink camera images before upload so future loads are CDN-sized by default. */
-export async function prepareImageForUpload(file: File, maxSide = 1920, quality = 0.82) {
+export async function prepareImageForUpload(file: File, maxSide = 1920, quality = 0.82, forceJpeg = false) {
+  if (forceJpeg) return compressAlbumImage(file, maxSide, quality)
   // Keep animated GIFs intact; canvas compression would flatten them to one frame.
   if (file.type === 'image/gif') return file
   if (!import.meta.client || !file.type.startsWith('image/') || typeof createImageBitmap !== 'function') return file
@@ -254,7 +269,7 @@ export async function prepareImageForUpload(file: File, maxSide = 1920, quality 
 export async function uploadMediaResumable(supabase: SupabaseLike | null | undefined, bucket: string, path: string, file: File, onProgress?: (value: number) => void, upsert = false) {
   if (!supabase) throw new Error('Supabase 尚未配置')
   const fallback = () => supabase.storage.from(bucket).upload(path, file, { contentType: file.type, upsert })
-  const endpoint = supabase.supabaseUrl ? `${String(supabase.supabaseUrl).replace(/\/$/, '')}/storage/v1/upload/resumable` : ''
+  const endpoint = supabase.resumableUploadUrl || ''
   let accessToken = ''
   try { accessToken = String((await supabase.auth?.getSession())?.data?.session?.access_token || '') } catch { /* Use fallback below. */ }
   if (!endpoint || !accessToken || !import.meta.client || resumableUploadsDisabled) return fallback()
@@ -390,4 +405,64 @@ export function revealVideoFrame(event: Event) {
   }
   if (video.readyState >= 2) reveal()
   else video.addEventListener('loadeddata', reveal, { once: true })
+}
+
+/** Sign private media for the current SDK session without reading or writing any media cache. */
+export async function createPrivateMediaSignedUrls(
+  supabase: SupabaseLike | null | undefined,
+  items: Array<{ path: string; bucket?: string }>,
+  expiresIn = 3600,
+  options: { batch?: boolean } = {},
+): Promise<Map<string, string>> {
+  const result = new Map<string, string>()
+  if (!supabase || !items.length) return result
+
+  const groupedPaths = new Map<string, Set<string>>()
+  for (const item of items) {
+    if (!item.path) continue
+    const bucket = item.bucket || 'couple-media'
+    const paths = groupedPaths.get(bucket) || new Set<string>()
+    paths.add(item.path)
+    groupedPaths.set(bucket, paths)
+  }
+
+  const buckets = Array.from(groupedPaths.entries())
+  // At most two buckets sign concurrently; each fallback signs four objects at a time.
+  for (let bucketOffset = 0; bucketOffset < buckets.length; bucketOffset += 2) {
+    await Promise.all(buckets.slice(bucketOffset, bucketOffset + 2).map(async ([bucket, paths]) => {
+      let api: ReturnType<SupabaseLike['storage']['from']>
+      try { api = supabase.storage.from(bucket) } catch { return }
+
+      const uniquePaths = Array.from(paths)
+      for (let batchOffset = 0; batchOffset < uniquePaths.length; batchOffset += 100) {
+        const batch = uniquePaths.slice(batchOffset, batchOffset + 100)
+        if (options.batch !== false && api.createSignedUrls) {
+          try {
+            const response = await withTimeout(api.createSignedUrls(batch, expiresIn))
+            if (response && !response.error) {
+              const requestedPaths = new Set(batch)
+              for (const item of response.data || []) {
+                if (item.path && item.signedUrl && requestedPaths.has(item.path)) {
+                  result.set(`${bucket}:${item.path}`, item.signedUrl)
+                }
+              }
+            }
+          } catch { /* Fall back only for objects not signed successfully. */ }
+        }
+
+        const missing = batch.filter(path => !result.has(`${bucket}:${path}`))
+        for (let offset = 0; offset < missing.length; offset += 4) {
+          await Promise.all(missing.slice(offset, offset + 4).map(async path => {
+            try {
+              const response = await withTimeout(api.createSignedUrl(path, expiresIn))
+              if (response && !response.error && response.data?.signedUrl) {
+                result.set(`${bucket}:${path}`, response.data.signedUrl)
+              }
+            } catch { /* An unavailable object does not hide the other covers. */ }
+          }))
+        }
+      }
+    }))
+  }
+  return result
 }

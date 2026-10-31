@@ -1,0 +1,23 @@
+.album-detail__wall { min-width: 0; }
+.album-detail__wall figure { margin-top: 0; }
+.album-detail__photo { display: block; width: 100%; min-height: 44px; padding: 0; border: 0; border-radius: 12px; background: transparent; cursor: zoom-in; }
+.album-detail__photo img { display: block; height: auto; }
+.album-detail__placeholder { display: flex; min-height: 180px; aspect-ratio: 4 / 5; align-items: center; justify-content: center; flex-direction: column; gap: 13px; padding: 14px; border-radius: 12px; color: var(--muted); text-align: center; }
+.album-detail__placeholder > span { font-size: 12px; }
+.album-detail__placeholder button { padding: 8px 14px; font-size: 12px; }
+.album-detail__progress { margin-bottom: 24px; padding: 17px 20px; border-radius: 15px; color: var(--lavender-deep); font-size: 13px; }
+.album-detail__progress p { margin: 0 0 10px; }
+.album-detail__progress progress { display: block; width: 100%; height: 7px; overflow: hidden; border: 0; border-radius: 10px; background: var(--lavender-soft); accent-color: var(--lavender-deep); }
+.album-detail__progress progress::-webkit-progress-bar { background: var(--lavender-soft); }
+.album-detail__progress progress::-webkit-progress-value { border-radius: 10px; background: var(--lavender-deep); }
+.album-detail__progress progress::-moz-progress-bar { background: var(--lavender-deep); }
+.album-detail__preview { position: fixed; inset: 0; width: 100%; max-width: none; height: 100%; height: 100dvh; max-height: none; margin: 0; padding: max(65px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); border: 0; background: rgba(0, 0, 0, .82); color: #fff; }
+.album-detail__preview[open] { display: flex; align-items: center; justify-content: center; }
+.album-detail__preview::backdrop { background: transparent; }
+.album-detail__preview > img { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; border-radius: 5px; }
+.album-detail__preview-close { position: absolute; top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); display: grid; place-items: center; width: 48px; height: 48px; border: 1px solid rgba(255, 255, 255, .2); border-radius: 50%; background: rgba(255, 255, 255, .1); color: #fff; cursor: pointer; }
+.album-detail__preview-spinner { position: absolute; pointer-events: none; }
+.album-detail__preview-error { text-align: center; }
+.album-detail__preview-error p { font-size: 14px; }
+.album-detail__preview button:focus-visible { outline: 3px solid var(--lavender); outline-offset: 4px; }
+html:has(#album-photo-preview[open]) { overflow: hidden; }

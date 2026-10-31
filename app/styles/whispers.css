@@ -1,0 +1,69 @@
+.whispers-page { min-height: 100dvh; padding: max(16px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); background: radial-gradient(ellipse at 12% 14%, rgba(240, 220, 255, .7), transparent 50%), radial-gradient(ellipse at 92% 86%, rgba(255, 224, 236, .65), transparent 48%), var(--bg); color: var(--ink); font-family: var(--font-sans); }
+.whispers-page__layout { width: min(980px, 100%); margin: 0 auto; }
+.whispers-page__nav { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px; }
+.whispers-page__nav > div { display: flex; gap: 12px; }
+.whispers-page__nav a { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 6px 4px; color: var(--muted); font-size: 13px; text-decoration: none; }
+.whispers-page__nav a[aria-current='page'] { color: var(--lavender-deep); font-weight: 750; }
+.whispers-chat { display: flex; flex-direction: column; height: calc(100dvh - 112px); min-height: 420px; padding: 0; overflow: hidden; }
+.whispers-chat__header { display: flex; align-items: center; flex-shrink: 0; gap: 14px; padding: 20px 26px; border-bottom: 1px solid var(--line); }
+.whispers-chat__portrait { display: grid; place-items: center; flex-shrink: 0; width: 50px; height: 50px; border: 1px solid rgba(255, 255, 255, .8); border-radius: 18px; background: linear-gradient(135deg, var(--pink-soft), var(--lavender-soft)); color: var(--lavender-deep); font-size: 21px; font-weight: 700; }
+.whispers-chat__heading { min-width: 0; flex: 1; }
+.whispers-chat__heading > p { margin: 0 0 3px; color: var(--muted); font-size: 9px; letter-spacing: .14em; }
+.whispers-chat__heading > h1 { margin: 0; color: var(--ink); font-size: clamp(20px, 3vw, 25px); font-weight: 750; line-height: 1.5; overflow-wrap: anywhere; }
+.whispers-chat__heading > span { color: var(--muted); font-size: 11px; }
+.whispers-chat__refresh { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--lavender-deep); cursor: pointer; }
+.whispers-chat__messages { min-height: 0; flex: 1; padding: 22px 26px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-gutter: stable; overflow-anchor: none; }
+.whispers-chat__state { display: flex; min-height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px 0; color: var(--muted); text-align: center; }
+.whispers-chat__state > p { margin: 0; font-size: 14px; line-height: 1.8; }
+.whispers-chat__empty > svg { color: var(--pink); }
+.whispers-chat__empty > h2 { margin: 0; color: var(--ink); font-size: 20px; font-weight: 650; }
+.whispers-chat__history { display: flex; justify-content: center; padding-bottom: 16px; }
+.whispers-chat__history button, .whispers-chat__error button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); color: var(--lavender-deep); font: inherit; font-size: 12px; cursor: pointer; }
+.whispers-chat__beginning { margin: 0 0 20px; color: var(--muted); font-size: 11px; text-align: center; }
+.whispers-chat__list { display: grid; gap: 18px; margin: 0; padding: 0; list-style: none; }
+.whispers-chat__day { justify-self: center; padding: 5px 12px; border-radius: 12px; background: rgba(138, 116, 143, .07); color: var(--muted); font-size: 11px; }
+.whispers-chat__row { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.whispers-chat__row.is-mine { flex-direction: row-reverse; }
+.whispers-chat__avatar { display: grid; place-items: center; flex: 0 0 35px; height: 35px; margin-top: 20px; border-radius: 12px; background: var(--pink-soft); color: #995775; font-size: 14px; font-weight: 700; }
+.whispers-chat__row.is-mine > .whispers-chat__avatar { background: var(--lavender-soft); color: var(--lavender-deep); }
+.whispers-chat__content { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; max-width: min(78%, 560px); gap: 5px; }
+.whispers-chat__row.is-mine .whispers-chat__content { align-items: flex-end; }
+.whispers-chat__sender { padding: 0 2px; color: var(--muted); font-size: 11px; }
+.whispers-chat__bubble { max-width: 100%; margin: 0; border: 1px solid rgba(238, 120, 167, .08); background: #fff0f5; color: var(--ink); font-size: 15px; line-height: 1.75; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; }
+.whispers-chat__row.is-mine .whispers-chat__bubble { border-color: rgba(180, 110, 227, .1); background: #efe2fb; }
+.whispers-chat__meta { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.whispers-chat__meta .is-read { color: var(--lavender-deep); }
+.whispers-chat__notice { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 10px; padding: 8px 18px; border-bottom: 1px solid var(--line); background: var(--pink-soft); color: var(--ink); font-size: 12px; }
+.whispers-chat__notice p { margin: 0; overflow-wrap: anywhere; }
+.whispers-chat__notice button { flex-shrink: 0; min-height: 44px; border: 0; border-radius: 10px; background: transparent; color: var(--lavender-deep); font: inherit; text-decoration: underline; cursor: pointer; }
+.whispers-chat__error { margin: 0 0 18px; padding: 15px; border: 1px solid var(--line); border-radius: 14px; background: #fff1f5; color: #923c61; }
+.whispers-chat__error > p { margin: 0 0 10px; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.whispers-chat__composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; flex-shrink: 0; gap: 10px 14px; padding: 17px 24px 13px; border-top: 1px solid var(--line); background: rgba(255, 250, 255, .65); }
+.whispers-chat__composer > textarea { display: block; width: 100%; min-width: 0; min-height: 52px; max-height: 160px; resize: none; padding: 12px 14px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; line-height: 1.5; }
+.whispers-chat__composer > textarea::placeholder { color: var(--muted); opacity: .8; }
+.whispers-chat__composer > button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 48px; padding: 11px 18px; border: 0; border-radius: 14px; background: var(--lavender-deep); color: var(--surface-solid); font: inherit; font-size: 14px; font-weight: 700; }
+.whispers-chat__composer > p { display: flex; grid-column: 1 / -1; align-items: center; justify-content: center; gap: 5px; margin: 0; color: var(--muted); font-size: 10px; }
+.whispers-chat__composer > .whispers-chat__send-error { justify-content: flex-start; color: #923c61; font-size: 12px; overflow-wrap: anywhere; }
+.whispers-chat button:disabled { cursor: not-allowed; opacity: .55; }
+.whispers-chat__composer > textarea:disabled { cursor: not-allowed; opacity: .8; }
+.whispers-page :is(a, button, textarea, [tabindex]):focus-visible { outline: 3px solid var(--lavender); outline-offset: 3px; }
+.whispers-chat__spinner { animation: whispers-spin .9s linear infinite; }
+@keyframes whispers-spin { to { transform: rotate(360deg); } }
+@media (max-width: 650px) {
+  .whispers-page { padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
+  .whispers-page__nav { gap: 8px; margin-bottom: 6px; }
+  .whispers-chat { height: calc(100dvh - max(8px, env(safe-area-inset-top)) - max(10px, env(safe-area-inset-bottom)) - 50px); min-height: 0; border-radius: 20px; }
+  .whispers-chat__header { gap: 10px; padding: 15px 14px; }
+  .whispers-chat__heading > p { font-size: 8px; }
+  .whispers-chat__portrait { width: 43px; height: 43px; border-radius: 15px; }
+  .whispers-chat__messages { padding: 18px 12px; scrollbar-gutter: auto; }
+  .whispers-chat__row { gap: 7px; }
+  .whispers-chat__avatar { flex-basis: 30px; height: 30px; border-radius: 10px; font-size: 12px; }
+  .whispers-chat__content { max-width: 81%; }
+  .whispers-chat__bubble { font-size: 14px; }
+  .whispers-chat__composer { gap: 8px; padding: 13px 12px 10px; }
+  .whispers-chat__composer > button { padding: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .whispers-chat__spinner { animation: none; }
+}

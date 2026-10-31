@@ -1,4 +1,4 @@
-const VERSION = 'love-home-shell-v1'
+const VERSION = 'love-home-shell-v2'
 const CORE_ASSETS = [
   '/',
   '/manifest.webmanifest',
@@ -39,7 +39,9 @@ self.addEventListener('fetch', event => {
       fetch(request)
         .then(response => {
           const copy = response.clone()
-          void caches.open(VERSION).then(cache => cache.put('/', copy))
+          if (response.ok && !/no-store|no-cache/i.test(response.headers.get('cache-control') || '')) {
+            void caches.open(VERSION).then(cache => cache.put('/', copy))
+          }
           return response
         })
         .catch(() => caches.match('/')
@@ -50,15 +52,12 @@ self.addEventListener('fetch', event => {
 
   if (url.pathname.startsWith('/_nuxt/') || CORE_ASSETS.includes(url.pathname)) {
     event.respondWith(
-      caches.match(request).then(cached => {
-        const update = fetch(request)
-          .then(response => {
-            if (response.ok) void caches.open(VERSION).then(cache => cache.put(request, response.clone()))
-            return response
-          })
-          .catch(() => cached || new Response('', { status: 504, statusText: 'Offline asset unavailable' }))
-        return cached || update
-      }),
+      fetch(request).then(response => {
+        if (response.ok && !/no-store|no-cache/i.test(response.headers.get('cache-control') || '')) {
+          void caches.open(VERSION).then(cache => cache.put(request, response.clone()))
+        }
+        return response
+      }).catch(() => caches.match(request).then(cached => cached || new Response('', { status: 504, statusText: 'Offline asset unavailable' }))),
     )
   }
 })

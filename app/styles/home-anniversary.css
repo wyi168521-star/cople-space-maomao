@@ -1,0 +1,49 @@
+.home-anniversary { width: min(600px, 100%); margin: 0 auto 24px; padding: clamp(22px, 4vw, 30px); }
+.home-anniversary__header { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.home-anniversary__eyebrow { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; color: var(--lavender-deep); font-size: 10px; font-weight: 700; letter-spacing: .1em; }
+.home-anniversary .home-anniversary__title { margin: 0; color: var(--ink); font-size: clamp(21px, 4vw, 26px); font-weight: 750; letter-spacing: -.02em; }
+.home-anniversary__add { display: flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 6px; min-height: 44px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); color: var(--lavender-deep); font-size: 12px; font-weight: 700; }
+.home-anniversary__countdown { padding-top: 23px; }
+.home-anniversary__lead { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.9; overflow-wrap: anywhere; }
+.home-anniversary__lead > strong { color: var(--ink); font-size: 17px; font-weight: 700; }
+.home-anniversary__number { display: flex; align-items: baseline; gap: 11px; margin: 7px 0 10px; color: var(--lavender-deep); }
+.home-anniversary__number > strong { font-size: clamp(58px, 10vw, 82px); font-weight: 750; line-height: 1.2; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.home-anniversary__number > span { color: var(--muted); font-size: 15px; }
+.home-anniversary__date { margin: 0; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.home-anniversary__empty { display: grid; gap: 7px; padding-top: 25px; }
+.home-anniversary__empty > p { margin: 0; color: var(--ink); font-size: 16px; }
+.home-anniversary__empty > span { color: var(--muted); font-size: 12px; line-height: 1.8; }
+.home-anniversary__celebration { display: grid; justify-items: center; gap: 12px; padding-top: 26px; text-align: center; }
+.home-anniversary__celebration > svg { color: var(--pink); }
+.home-anniversary__celebration > h3 { margin: 0; color: var(--lavender-deep); font-size: clamp(22px, 4vw, 29px); font-weight: 700; line-height: 1.6; overflow-wrap: anywhere; text-wrap: balance; }
+.home-anniversary__celebration > p { margin: 0; color: var(--muted); font-size: 12px; }
+.home-anniversary__notice { margin: 18px 0 0; padding-top: 13px; border-top: 1px solid var(--line); color: var(--lavender-deep); font-size: 12px; line-height: 1.8; }
+.home-anniversary__loading { display: flex; align-items: center; gap: 9px; margin: 24px 0 0; color: var(--muted); font-size: 13px; }
+.home-anniversary-dialog { width: min(490px, calc(100% - 32px)); max-width: none; max-height: calc(100dvh - 32px); margin: auto; padding: 26px; overflow-y: auto; }
+.home-anniversary-dialog::backdrop { background: rgba(62, 41, 71, .28); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+.home-anniversary-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 26px; }
+.home-anniversary-dialog > header h2 { margin: 0; color: var(--ink); font-size: 25px; }
+.home-anniversary__close { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--muted); }
+.home-anniversary-dialog fieldset { display: grid; gap: 20px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.home-anniversary-dialog label { display: grid; min-width: 0; gap: 8px; color: var(--ink); font-size: 14px; font-weight: 700; }
+.home-anniversary-dialog label > input:not([type='checkbox']) { width: 100%; min-width: 0; min-height: 48px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; }
+.home-anniversary-dialog input::placeholder { color: var(--muted); opacity: .8; }
+.home-anniversary-dialog .home-anniversary__repeat { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+.home-anniversary__repeat > input { width: 20px; height: 20px; margin: 0; accent-color: var(--lavender-deep); }
+.home-anniversary__help { margin: -12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.8; }
+.home-anniversary-dialog footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 26px; }
+.home-anniversary__save, .home-anniversary__cancel { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 46px; padding: 11px 17px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); color: var(--lavender-deep); font-size: 14px; font-weight: 700; }
+.home-anniversary__save { border-color: transparent; background: linear-gradient(125deg, var(--lavender-deep), #b968ae); color: var(--surface-solid); }
+.home-anniversary__error { margin: 20px 0 0; padding: 12px; border: 1px solid var(--line); border-radius: 13px; background: #fff1f5; color: #923c61; font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
+.home-anniversary__error > p { margin: 0; }
+.home-anniversary__error button { min-height: 44px; padding: 7px 0; border: 0; background: transparent; color: inherit; text-decoration: underline; }
+.home-anniversary :is(button, input):focus-visible, .home-anniversary-dialog :is(button, input):focus-visible { outline: 3px solid var(--lavender); outline-offset: 3px; }
+.home-anniversary__spinner { animation: anniversary-spin 1s linear infinite; }
+html:has(#anniversary-editor[open]) { overflow: hidden; }
+@keyframes anniversary-spin { to { transform: rotate(360deg); } }
+@media (max-width: 650px) {
+  .home-anniversary { padding: 21px 18px; }
+  .home-anniversary-dialog { padding: 22px 18px; }
+  .home-anniversary-dialog footer > button { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .home-anniversary__spinner { animation: none; } }

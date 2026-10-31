@@ -2,6 +2,7 @@ export type Album = { id: string; name: string; description: string; coverUrl: s
 export type GalleryPhoto = { id: string; path: string; thumbPath?: string; mediumPath?: string; originalPath?: string; videoPosterPath?: string; videoPosterUrl?: string; url: string; originalUrl?: string; loadState?: 'pending'|'ready'|'error'; takenDate: string; albumId: string; albumName: string; source: 'album' | 'memory'; caption: string; mediaType:'image'|'video'; uploadedBy:string; uploaderName:string; legacy:boolean }
 import { createMediaSignedUrl, createMediaSignedUrls, createVideoPoster, prepareImageVariants, prepareVideoForUpload, uploadMediaResumable } from './useMediaUrls'
 import { runQueuedUpload } from './useMediaUploadQueue'
+import { useAlbumCatalog } from './useAlbumCatalog'
 
 const albums = ref<Album[]>([])
 const albumPhotos = ref<GalleryPhoto[]>([])
@@ -10,7 +11,14 @@ const albumsLoaded = ref(false)
 const ALBUM_PAGE_SIZE = 20
 let albumRealtimeChannel: any = null
 
-export function useAlbums() {
+// 新列表使用标准化媒体表；默认调用保留旧相册/照片墙 API。
+export function useAlbums(options: { catalog: true }): ReturnType<typeof useAlbumCatalog>
+export function useAlbums(options?: { catalog?: false }): ReturnType<typeof useLegacyAlbums>
+export function useAlbums(options?: { catalog?: boolean }) {
+  return options?.catalog ? useAlbumCatalog() : useLegacyAlbums()
+}
+
+function useLegacyAlbums() {
   const { $supabase } = useNuxtApp()
   const { profile, demoMode } = useCoupleAuth()
   const { memories, loadMemories } = useMemories()
@@ -187,7 +195,9 @@ export function useAlbums() {
 
   async function createAlbum(name: string, description: string) {
     if (!$supabase || demoMode.value) { albums.value.unshift({ id: crypto.randomUUID(), name, description, coverUrl: '', createdAt: new Date().toISOString(), photoCount: 0 }); demoSave(); return }
-    const { error } = await $supabase.from('albums').insert({ couple_id: profile.value!.coupleId, created_by: profile.value!.id, name, description: description || null })
+    const member = profile.value
+    if (!member?.coupleId) throw new Error('请先加入情侣空间')
+    const { error } = await $supabase.from('albums').insert({ couple_id: member.coupleId, created_by: member.id, name, title: name, description: description || null })
     if (error) throw error; await loadAlbums(true)
   }
 
@@ -239,7 +249,7 @@ export function useAlbums() {
   async function deletePhoto(photo: GalleryPhoto) {
     if (photo.source === 'memory') throw new Error('时光轴照片请在对应回忆中编辑')
     if (!$supabase || demoMode.value) { albumPhotos.value = albumPhotos.value.filter(item => item.id !== photo.id); demoSave(); return }
-    const paths = [...new Set([photo.path, photo.thumbPath, photo.mediumPath, photo.originalPath, photo.videoPosterPath].filter(Boolean))]
+    const paths = [...new Set([photo.path, photo.thumbPath, photo.mediumPath, photo.originalPath, photo.videoPosterPath].filter((path): path is string => Boolean(path)))]
     if (paths.length) {
       const { error: storageError } = await $supabase.storage.from(photo.legacy ? 'memory-photos' : 'album-media').remove(paths)
       if (storageError) throw storageError

@@ -1,3 +1,33 @@
+import type { AppSupabaseClient } from '../lib/supabase'
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function recordValue(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {}
+}
+
+function listValue(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+type ActivityContextArgs = {
+  p_activity_date: string | null
+  p_activity_type: string
+  p_mood: number | null
+  p_note: string | null
+}
+
+function recordActivityContext(client: AppSupabaseClient, args: ActivityContextArgs) {
+  // SQL 明确接受这些 NULL；生成器只读取参数类型，无法表达函数参数可空性。
+  // 仅修正这一个 RPC 的调用签名，其余数据库调用仍使用原始生成类型。
+  const rpc = client.rpc.bind(client) as (
+    name: 'record_couple_activity_context', values: ActivityContextArgs
+  ) => PromiseLike<{ data: unknown; error: unknown }>
+  return rpc('record_couple_activity_context', args)
+}
+
 export type CouplePet = {
   id: string
   coupleId: string
@@ -63,9 +93,10 @@ export function useCouplePet() {
 
   async function subscribe() {
     if (!$supabase || demoMode.value || realtimeChannel || !profile.value?.coupleId) return
-    realtimeChannel = $supabase.channel(`pet-streak:${profile.value.coupleId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'couple_pets', filter: `couple_id=eq.${profile.value.coupleId}` }, (payload: any) => { if (payload.new) pet.value = mapPet(payload.new) })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'couple_streaks', filter: `couple_id=eq.${profile.value.coupleId}` }, (payload: any) => {
+    const coupleId = profile.value.coupleId
+    realtimeChannel = $supabase.channel(`pet-streak:${coupleId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'couple_pets', filter: `couple_id=eq.${coupleId}` }, (payload: any) => { if (payload.new) pet.value = mapPet(payload.new) })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'couple_streaks', filter: `couple_id=eq.${coupleId}` }, (payload: any) => {
         if (!payload.new) return
         streak.value = mapStreak(payload.new)
         if (todayKey.value && payload.new.last_completed_date === todayKey.value) {
@@ -73,9 +104,9 @@ export function useCouplePet() {
           todayActionCount.value = Math.max(todayActionCount.value, 2)
         }
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'streak_day_actions', filter: `couple_id=eq.${profile.value.coupleId}` }, async (payload: any) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'streak_day_actions', filter: `couple_id=eq.${coupleId}` }, async (payload: any) => {
         if (!todayKey.value || payload.new?.activity_date !== todayKey.value) return
-        const { data: rows, count } = await $supabase.from('streak_day_actions').select('user_id, activity_type, mood, note, created_at', { count: 'exact' }).eq('couple_id', profile.value.coupleId).eq('activity_date', todayKey.value)
+        const { data: rows, count } = await $supabase.from('streak_day_actions').select('user_id, activity_type, mood, note, created_at', { count: 'exact' }).eq('couple_id', coupleId).eq('activity_date', todayKey.value)
         todayActionCount.value = Number(count || 0)
         todayActorIds.value = (rows || []).map((row: any) => String(row.user_id))
         todayActions.value = mapActions(rows || [])
@@ -98,17 +129,19 @@ export function useCouplePet() {
         todayActions.value = todayCompleted.value ? [{ userId: profile.value?.id || 'demo-user', activityType: 'manual', mood: null, note: '', createdAt: new Date().toISOString() }] : []
         saveDemo(); return
       }
-      const { data: status, error: statusError } = await $supabase.rpc('get_couple_streak_status')
+      const coupleId = profile.value?.coupleId
+      if (!coupleId) throw new Error('请先加入情侣空间')
+      const { data: payload, error: statusError } = await $supabase.rpc('get_couple_streak_status')
       if (statusError) {
         // Keep older deployments usable until migration 016 is applied.
         const { data: petData, error: petError } = await $supabase.rpc('ensure_couple_pet')
         if (petError) throw petError
         pet.value = mapPet(Array.isArray(petData) ? petData[0] : petData)
-        const { data: streakData, error: streakError } = await $supabase.from('couple_streaks').select('*').eq('couple_id', profile.value!.coupleId).maybeSingle()
+        const { data: streakData, error: streakError } = await $supabase.from('couple_streaks').select('*').eq('couple_id', coupleId).maybeSingle()
         if (streakError) throw streakError
         todayKey.value = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())
         streak.value = streakData ? mapStreak(streakData) : null
-        const { count } = await $supabase.from('streak_day_actions').select('user_id', { count: 'exact', head: true }).eq('couple_id', profile.value!.coupleId).eq('activity_date', todayKey.value)
+        const { count } = await $supabase.from('streak_day_actions').select('user_id', { count: 'exact', head: true }).eq('couple_id', coupleId).eq('activity_date', todayKey.value)
         todayActionCount.value = Number(count || 0)
         todayCompleted.value = todayActionCount.value >= 2
         todayActorIds.value = []
@@ -116,12 +149,13 @@ export function useCouplePet() {
         await subscribe()
         return
       }
-      todayKey.value = String(status?.today || '')
+      const status = recordValue(payload)
+      todayKey.value = String(status.today || '')
       todayActionCount.value = Number(status?.today_action_count || 0)
-      todayActorIds.value = (status?.today_actor_ids || []).map((id: any) => String(id))
-      todayActions.value = mapActions(status?.today_actions || [])
-      petRewards.value = mapRewards(status?.rewards || [])
-      milestones.value = mapMilestones(status?.milestones || [])
+      todayActorIds.value = listValue(status.today_actor_ids).map(id => String(id))
+      todayActions.value = mapActions(listValue(status.today_actions))
+      petRewards.value = mapRewards(listValue(status.rewards))
+      milestones.value = mapMilestones(listValue(status.milestones))
       if (!status?.today_actor_ids && profile.value?.coupleId && todayKey.value) {
         const { data: rows } = await $supabase.from('streak_day_actions').select('user_id, activity_type, mood, note, created_at').eq('couple_id', profile.value.coupleId).eq('activity_date', todayKey.value)
         todayActorIds.value = (rows || []).map((row: any) => String(row.user_id))
@@ -150,19 +184,19 @@ export function useCouplePet() {
         if (pet.value) { pet.value.experience += 5; pet.value.mood = Math.min(100, pet.value.mood + 8) }
         saveDemo(); return
       }
-      let data: any
-      const contextual = await $supabase.rpc('record_couple_activity_context', { p_activity_date: null, p_activity_type: activityType, p_mood: mood, p_note: note || null })
+      let data: Record<string, unknown>
+      const contextual = await recordActivityContext($supabase, { p_activity_date: null, p_activity_type: activityType, p_mood: mood, p_note: note || null })
       if (contextual.error) {
         const legacy = await $supabase.rpc('record_couple_activity')
         if (legacy.error) throw legacy.error
-        data = legacy.data
-      } else data = contextual.data
+        data = recordValue(legacy.data)
+      } else data = recordValue(contextual.data)
       todayKey.value = String(data?.today || todayKey.value)
       todayActionCount.value = Number(data?.today_action_count || 0)
-      todayActorIds.value = (data?.today_actor_ids || []).map((id: any) => String(id))
-      todayActions.value = mapActions(data?.today_actions || [])
-      if (data?.rewards) petRewards.value = mapRewards(data.rewards)
-      if (data?.milestones) milestones.value = mapMilestones(data.milestones)
+      todayActorIds.value = listValue(data.today_actor_ids).map(id => String(id))
+      todayActions.value = mapActions(listValue(data.today_actions))
+      if (data.rewards) petRewards.value = mapRewards(listValue(data.rewards))
+      if (data.milestones) milestones.value = mapMilestones(listValue(data.milestones))
       if (data?.streak) streak.value = mapStreak(data.streak)
       if (data?.pet) pet.value = mapPet(data.pet)
       todayCompleted.value = Boolean(data?.today_completed) || todayActionCount.value >= 2

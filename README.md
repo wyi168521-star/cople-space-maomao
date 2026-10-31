@@ -129,7 +129,7 @@ The project is still evolving. Contributions are welcome, especially around acce
 | 层级 | 技术 | 用途 |
 | --- | --- | --- |
 | Web 应用 | Nuxt 4、Vue 3、TypeScript | SSR、静态生成和组件化界面 |
-| 样式与交互 | CSS、玻璃质感设计、Lucide | 响应式布局、主题和图标系统 |
+| 样式与交互 | Tailwind CSS v4、CSS、玻璃质感设计、Lucide | 主题变量、工具类、响应式布局和图标系统 |
 | 用户与数据 | Supabase Auth、Postgres、RLS | 登录、情侣空间、数据隔离和权限控制 |
 | 实时能力 | Supabase Realtime | 消息、情书、宠物和共同数据同步 |
 | 私密媒体 | Supabase Storage | 照片、视频、语音和短期签名地址 |
@@ -146,16 +146,28 @@ The project is still evolving. Contributions are welcome, especially around acce
 ```text
 CoupleSpace/
 ├─ app/
-│  ├─ app.vue                 # 应用壳、导航、首页和全局状态
-│  ├─ components/             # 首页、相册、时光、聊天、AI、宠物等界面
-│  ├─ composables/            # Auth、Realtime、媒体缓存、通话和业务逻辑
-│  └─ plugins/supabase.ts     # Supabase 客户端初始化
+│  ├─ app.vue                 # 应用入口，保留现有业务视图和导航状态
+│  ├─ components/
+│  │  ├─ ui/                 # GlassCard、PageTransition、EmptyState、Loading
+│  │  ├─ layout/             # AppShell、SideNav（桌面）、BottomNav（手机）
+│  │  └─ *.vue               # 现有首页、相册、时光、聊天、AI、宠物等业务组件
+│  ├─ composables/           # useAuth、useSupabaseQuery、useRealtime 及已有业务逻辑
+│  ├─ lib/supabase.ts        # 唯一 createClient 入口，按 Nuxt 应用实例创建
+│  ├─ plugins/supabase.ts    # 从 runtimeConfig 读取配置，注入 $supabase
+│  ├─ pages/                # login、pairing 和首页；Nuxt 文件路由
+│  ├─ assets/css/index.css   # Tailwind v4 入口与 @theme
+│  ├─ styles/legacy.css      # 从 app.vue 提取的既有全局样式，保持原顺序
+│  ├─ types/                 # 生成的 Database schema、兼容行类型与共享类型
+│  └─ utils/                 # 消息、上传和诊断工具
 ├─ public/
 │  ├─ couplespace-mark.svg    # 品牌图标
 │  ├─ login-couple.jpg        # 登录页视觉资源
 │  └─ models/Fox.glb          # 3D 宠物模型
 ├─ supabase/
-│  ├─ migrations/             # 数据表、RLS、Realtime 和宠物系统迁移
+│  ├─ migrations/             # baseline + align_schema，供全新本地初始化
+│  ├─ legacy-migrations/      # 原 23 份迁移及来源 SHA-256 清单
+│  ├─ scripts/                # 按依赖重新生成基础迁移
+│  ├─ tests/                  # 独立的 PostgreSQL 兼容升级回归测试
 │  └─ functions/              # AI、ZEGO Token、账户相关 Edge Functions
 ├─ android/                   # Capacitor Android 工程
 ├─ desktop/                   # Electron Windows 桌面壳
@@ -165,28 +177,76 @@ CoupleSpace/
 └─ package.json
 ```
 
+### 基础层约定
+
+保留 Nuxt 4 / Vue 3。`app.vue` 是 `<NuxtPage>` 入口，`composables/` 管理共享会话；不创建第二套 React 运行时。`app/pages/` 包含 `/login`、`/pairing` 和 `/`，全局守卫在浏览器恢复会话后按成员关系分发。原完整业务页面保存在 `app/legacy-app.vue`，当前首页先用于配对验收。数据库采用基础迁移、最终对齐及后续增量迁移，具体本地启动方式见下文。
+
+`AppShell` 已接入应用，统一组合桌面 `SideNav` 与手机 `BottomNav`。导航使用 `items`、`active`、`unreadCount` 等 props，以及 `select`、`settings` 事件；组件不读取数据库。布局插槽为默认内容、`before`（页面提示）和 `overlays`（现有面板）。
+
+通用组件可显式导入，也可以使用 Nuxt 默认自动导入名：`UiGlassCard`、`UiPageTransition`、`UiEmptyState`、`UiLoading`。例如：
+
+```vue
+<UiGlassCard as="section" padding="md">
+  <UiEmptyState title="还没有共同回忆" description="从第一张照片开始。">
+    <template #actions><button type="button">添加照片</button></template>
+  </UiEmptyState>
+</UiGlassCard>
+<UiLoading variant="skeleton" label="正在加载回忆" :lines="3" />
+<UiPageTransition :transition-key="currentPage"><div>页面内容</div></UiPageTransition>
+```
+
+`Loading` 与 `EmptyState` 已替换现有业务视图的重复加载和失败状态。`PageTransition` 提供可选的 200ms 进出过渡并尊重减少动态效果偏好；暂未包裹现有视图，避免改变“记录此刻”等操作对组件立即挂载的依赖。
+
+`app/assets/css/index.css` 通过 Nuxt 的 `css` 配置全局加载，使用完整的 `@import "tailwindcss"` 入口（含 Preflight）。其后的 `legacy.css` 保留已有业务样式，`@theme inline` 保留现有语义色彩、展示字体和阴影映射，可继续使用 `bg-bg`、`text-ink`、`text-muted`、`text-accent`、`shadow-glass` 等工具类。
+
+新增主题使用 `@theme static` 定义，确保变量即使暂未用于工具类也会输出，供组件直接通过 `var()` 读取：
+
+```css
+@theme static {
+  --color-blush: #f5e6f0;
+  --color-lavender: #c9a0dc;
+  --color-rose-dust: #e8b4b8;
+  --color-glass: rgba(255, 255, 255, 0.72);
+  --font-sans: "Manrope", "Nunito Sans", sans-serif;
+  --radius-card: 1.25rem;
+}
+```
+
+对应工具类为 `bg-blush`、`text-lavender`、`bg-rose-dust`、`bg-glass`、`font-sans`、`rounded-card`。`GlassCard` 读取 `--radius-card`，默认圆角为 `1.25rem`，随根字号缩放。全局默认字体使用该字体栈；`font-aliases.css` 将已经安装的本地变量字体注册为主题指定的 `Manrope` 和 `Nunito Sans`，沿用原有字重和语言分段，不新增字体依赖或远程请求。
+
+### Supabase 基础接口
+
+- `app/lib/supabase.ts` 是唯一调用 SDK `createClient` 的位置。插件为每个 Nuxt 应用实例创建并注入客户端，避免服务器请求之间共享会话。缺少 URL 或 anon key 时返回 `null`，沿用现有本地演示模式。
+- `useAuth()` 复用 `useCoupleAuth()` 的认证、配对和演示状态，返回接口保持一致；旧业务组件可以继续使用原 composable。
+- `useSupabaseQuery<T>(query, options)` 接收 `(client, signal)` 查询回调，返回只读的 `data / error / count / status / pending`，以及 `execute / refresh / cancel / clear`。支持 `initialData`、`enabled`、`watch` 和 `immediate`。自动查询在组件挂载后开始，SSR 不自动请求；新请求和销毁会取消旧请求并忽略过期响应。将 signal 传给 SDK 的 `.abortSignal(signal)` 才能中止底层网络请求。
+- `useRealtime(filter, onChange, options)` 包装 `postgres_changes`。filter 可为 ref 或 getter，包含 `event / schema / table / filter`；支持 `enabled`、`immediate`、`channelName`，返回 `configured / connected / status / error / subscribe / stop`。每次调用使用独立频道，参数变化或组件销毁时移除旧频道；回调可用 ref 更新。Presence 和通话继续使用原业务 composables。
+
+这些 composables 在组件 setup 中调用；查询和订阅默认只在浏览器挂载后启动。未配置状态为 `unconfigured`，不会创建虚假查询结果。下一阶段使用实时功能前，需要在自己的 Supabase 项目为对应表启用 Realtime，并配置成员访问的 RLS。
+
+`app/types/database.generated.ts` 是 Supabase CLI 从实际本地数据库生成完整 `Database` schema 的目标文件；在 `app/lib/supabase.ts` 使用 `createClient<Database>`，沿用 Nuxt 插件逐实例注入。`app/types/database.ts` 保留现有业务使用的兼容行类型。生成、接入与检查结果记录在 [验证报告](docs/FOUNDATION_VALIDATION.md)。
+
 ## 快速开始
 
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/XTH-LOVE/Love-.git
-cd Love-
+git clone https://github.com/XTH-LOVE/Love.git
+cd Love
 npm install
 ```
 
 Windows PowerShell：
 
 ```powershell
-git clone https://github.com/XTH-LOVE/Love-.git
-Set-Location Love-
+git clone https://github.com/XTH-LOVE/Love.git
+Set-Location Love
 npm install
-Copy-Item .env.example .env
+Copy-Item .env.example .env.local
 ```
 
 ### 2. 配置环境变量
 
-复制 `.env.example` 为 `.env`，至少配置：
+复制 `.env.example` 为 `.env.local`，至少配置以下 Nuxt 变量。本地开发应使用 `npx supabase status` 输出的 URL 和 anon key；连接云端时再替换为自己的项目值：
 
 ```env
 NUXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -201,15 +261,102 @@ NUXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 - `NUXT_PUBLIC_ZEGO_SERVER`：ZEGO WebSocket 服务地址。
 - `NUXT_PUBLIC_TURN_URLS`、`NUXT_PUBLIC_TURN_USERNAME`、`NUXT_PUBLIC_TURN_CREDENTIAL`：WebRTC 中继配置。
 
-### 3. 初始化 Supabase
+### 3. 初始化本地 Supabase
 
-将 `supabase/migrations/` 中的迁移应用到自己的 Supabase 项目。使用 Supabase CLI 时可以：
+仓库已包含 Supabase CLI 开发依赖与 `supabase/config.toml`，无需再次运行 `supabase init`。先启动 Docker Desktop，并确认当前终端可以运行 `docker ps`。Windows 中若宿主机可运行 Docker、当前 shell 却找不到，应将实际安装目录的 `resources/bin` 加入该执行进程的 PATH；安装目录以本机为准。
+
+活动迁移按文件名顺序自动应用：
+
+| 文件 | 用途 |
+| --- | --- |
+| `20261026000000_baseline.sql` | 将 33 个原始来源按依赖合并，先创建业务表再升级，整份使用一个显式事务。 |
+| `20261027162443_align_schema.sql` | 对齐字段、约束、索引、RLS、访问授权、辅助函数与私有 Storage。 |
+| `20261029132447_pairing_rpc.sql` | 新增仅登录用户可调用的创建空间、加入空间 RPC。 |
+
+原 23 份迁移完整保存在 `supabase/legacy-migrations/`，`baseline-sources.json` 记录全部来源的 SHA-256。`messages`、`couple_letters` 仍由当前应用使用；原失败原因是它们的建表脚本位于迁移目录外，而不是表已废弃。修改基础结构的来源后，运行 `node supabase/scripts/rebuild-baseline.mjs` 可重建基础迁移；来源中的事务外壳会被合并事务统一替代。
+
+首次启动：
 
 ```bash
-npx supabase login
-npx supabase link --project-ref your-project-ref
-npx supabase db push
+npx supabase start
+npx supabase migration up
+npx supabase status
 ```
+
+首次会下载 Docker 镜像。`start` 已包含初始化与迁移，随后 `migration up` 用于确认无待应用文件。仅当确认本地数据可以丢弃、需要从零初始化时，执行 `npx supabase stop --no-backup` 后重新 `start`。
+
+这套合并历史用于全新本地数据库。已有部署应保留自己的迁移记录并核对实际 schema；不要把这份基础迁移直接推送到已有云端数据库，也不要在旧库重放整套历史 SQL。
+
+最终结构保留现有 `profiles / messages / album_photos` 等业务表及 RPC，新增 `memory_media / album_media / whispers` 与新字段。新旧日期、正文、相册名和纪念日重复设置通过兼容触发器同步；媒体和消息按原 ID 同步。成员角色为 `a / b`，每个空间各最多一人。`couple_members` 的直接读取限本人，伴侣资料通过现有 RPC 获取。
+
+全部应用 public 表启用 RLS，策略仅面向 `authenticated`，UPDATE/ALL 明确填写 `WITH CHECK`；表授权按实际策略命令授予，`account_usernames` 继续禁止客户端直接访问。`whispers` 仅授予 `read_at` 列更新权限，阻止修改正文。`user_couple_ids()` 为 `SECURITY DEFINER`，使用空 `search_path` 并限制执行角色。
+
+Storage 包含私有 `couple-media`，同时保留现有上传流程使用的 `memory-photos / album-media / message-media` 和头像 `avatars`。媒体对象按 `<couple_id>/...` 限定访问，消息路径还需 `messages` 子目录；不会移动已有对象或把旧 bucket 重命名。匿名角色不能读取私有媒体。
+
+在 Studio 的 SQL Editor 或 psql 中执行安全验收：
+
+```sql
+select tablename, rowsecurity
+from pg_tables where schemaname = 'public' order by tablename;
+
+select tablename, policyname, cmd, roles, with_check
+from pg_policies where schemaname = 'public' order by tablename;
+
+select proname, prosecdef
+from pg_proc where proname = 'user_couple_ids';
+
+select id, public
+from storage.buckets where id = 'couple-media';
+```
+
+预期：所有表 `rowsecurity=true`；策略 `roles={authenticated}`；所有 UPDATE 的 `with_check` 非空；辅助函数 `prosecdef=true`；`couple-media.public=false`。这组元数据检查不替代成员、非成员和匿名用户的访问测试。
+
+从已启动并通过验收的本地数据库生成类型：
+
+```bash
+npm run db:gen-types
+npx nuxt prepare
+npx tsc --noEmit
+npx tsc --noEmit --project .nuxt/tsconfig.app.json
+npx tsc --noEmit --project .nuxt/tsconfig.server.json
+npx tsc --noEmit --project .nuxt/tsconfig.shared.json
+npx tsc --noEmit --project .nuxt/tsconfig.node.json
+```
+
+Nuxt 4 的根 `tsconfig.json` 采用 project references；因此除根命令外，需检查应用配置，避免空根项目掩盖应用错误。项目保留 Nuxt/Vue 的 `app/` 结构，客户端唯一入口为 `app/lib/supabase.ts`，不另建 React 的 `src/lib` 或使用 `VITE_SUPABASE_*`。
+
+`db:gen-types` 从真实本地 Supabase 导出类型，成功后原子替换生成文件；CLI 报错时保留原有类型。
+
+配对 RPC 接口：
+
+```ts
+// 创建者登录后调用，data 为新空间 UUID。
+await supabase.rpc('create_couple', {
+  p_name_a: '阿甲', p_name_b: '阿乙', p_start_date: '2023-05-20',
+})
+// 对方使用自己的登录会话，以及创建者提供的 UUID 调用。
+await supabase.rpc('join_couple', { p_couple_id: sharedCoupleId })
+```
+
+两者均为固定空 search_path 的 SECURITY DEFINER 函数，仅授予 authenticated 执行权限。创建时绑定当前用户为 a，加入时绑定为 b；重复配对和已占用 b 的空间会被拒绝。昵称去掉首尾空格后需为 1–40 字，日期不可空。资料行锁、空间父行锁和唯一约束保护并发提交，couple_members 继续只允许本人读取，不开放直接新增。真实数据库回滚测试见 `supabase/tests/pairing-rpc.sql`。前端已接入两个 RPC，完整双账号操作见 [人工测试指南](docs/MANUAL_AUTH_TEST.md)。
+
+将 `npx supabase status` 的本地值填入 `.env.local`：
+
+```env
+NUXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NUXT_PUBLIC_SUPABASE_ANON_KEY=<本地 anon key>
+```
+
+`.env.local` 已被 Git 忽略；不要填入 service-role key。Nuxt 启动和生成时用 `--dotenv .env.local` 显式加载它。
+
+数据库兼容回归测试与应用依赖分开安装：
+
+```bash
+npm ci --prefix supabase/tests
+npm test --prefix supabase/tests
+```
+
+测试使用 PGlite 与最小 Auth/Storage SQL 桩，验证历史数据、兼容字段、双向同步和权限回归；它不替代真实 Supabase 验收、Storage HTTP 上传、签名 URL 或 Realtime 测试。本轮真实数据库四项验收、五条 TypeScript 检查和 19 项前端单元测试均通过，详情见 [验证报告](docs/FOUNDATION_VALIDATION.md)。
 
 再部署 Edge Functions：
 
@@ -234,17 +381,26 @@ Edge Function Secrets 应在 Supabase 控制台配置：
 npm run dev
 ```
 
-默认开发地址通常是 `http://127.0.0.1:3200/`。如果 3200 端口已被占用，Nuxt 会选择其他端口。
+开发脚本自动读取 `.env.local`，绑定 `http://127.0.0.1:3200/`。如果端口被占用，以终端输出为准；人工验收保持同一主机名，避免混用 localhost 和 127.0.0.1 的浏览器存储。本地确认邮件在 `http://127.0.0.1:54324/` 查看，并在注册账号对应的浏览器环境打开确认链接。
 
 ## 构建与发布
 
-### Web 静态站点
+### 当前版本：带 AI 后端的 Nuxt Web 应用
+
+当前分支包含 `server/api/ai/*`。公网部署请使用 `npm run build`，保留 Nitro
+服务端来保护 DeepSeek Key；Supabase 连接参数通过托管平台的环境变量注入。
+生产变量模板见 [.env.production.example](.env.production.example)，提交前执行
+`npm run check:deploy`。检查说明见 [公网部署前检查](docs/PRE_DEPLOY_CHECK.md)。
+本机 `.env.local` 仅用于开发，不提交、不复制到云端。
+
+### 可选的静态构建（不含 Nuxt AI 后端）
 
 ```bash
-npm run generate
+npm run generate -- --dotenv .env.local
 ```
 
-生成结果位于 `.output/public/`，可部署到 Cloudflare Pages、Netlify、Vercel 静态托管或任意静态服务器。
+生成结果位于 `.output/public/`，可用于静态托管或移动端打包。这种构建不提供 Nuxt AI 后端接口。
+上述命令使用本地开发配置，不是当前公网全栈版本的部署方式。
 
 ### Android APK
 
@@ -323,7 +479,7 @@ Love小家处理的是情侣之间的照片、视频、消息和位置，因此�
 
 ### 为什么登录后页面还是演示模式？
 
-检查 `.env` 中的 Supabase URL 和 anon key，确认当前部署环境也配置了相同变量，并重新生成或重新部署静态文件。
+检查 `.env.local` 中的 Supabase URL 和 anon key，并确认启动时传入 `--dotenv .env.local`。部署环境应配置对应的 `NUXT_PUBLIC_SUPABASE_*` 变量，然后重新生成静态文件。
 
 ### 为什么通话提示 Token 无效？
 
@@ -335,7 +491,8 @@ ZEGO 的前端 App ID 不能替代 ServerSecret。请在 Supabase Edge Function 
 
 ### 能不能只使用网页，不构建 APK？
 
-可以。运行 `npm run generate` 后，把 `.output/public/` 部署到静态托管即可。Android 和 Windows 是额外的发布形态，不是 Web 使用的前置条件。
+可以。当前带 AI 后端的网页运行 `npm run build` 后部署到支持 Nuxt/Nitro 的服务环境。
+Android 和 Windows 是额外的发布形态，不是 Web 使用的前置条件。
 
 ## 开源协议
 

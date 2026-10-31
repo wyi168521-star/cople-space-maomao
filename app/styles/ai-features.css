@@ -1,0 +1,35 @@
+.home-ai-quote { position: relative; min-width: 0; margin: 26px 0 30px; padding: 20px 22px; border-radius: 20px; box-shadow: 0 8px 26px rgba(117, 70, 162, .065); }
+.home-ai-quote__header, .home-ai-quote__header > div { display: flex; align-items: center; gap: 8px; }
+.home-ai-quote__header { justify-content: space-between; color: var(--lavender-deep); }
+.love-flow .home-ai-quote h2 { margin: 0; color: var(--lavender-deep); font-size: 13px; font-weight: 700; letter-spacing: .08em; }
+.home-ai-quote__retry { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 13px; background: var(--lavender-soft); color: var(--lavender-deep); }
+.home-ai-quote__text { display: grid; align-items: center; min-height: 95px; padding: 10px 0 6px; }
+.home-ai-quote blockquote { margin: 0; color: var(--ink); font-family: 'STKaiti', 'KaiTi', 'Kaiti SC', 'Noto Serif SC', 'Songti SC', serif; font-size: clamp(23px, 4vw, 30px); line-height: 1.9; letter-spacing: .055em; overflow-wrap: anywhere; }
+.home-ai-quote__status { min-height: 20px; margin: 9px 0 0; color: var(--muted); font-size: 11px; line-height: 1.8; }
+.ai-quote-enter-active, .ai-quote-leave-active { transition: opacity .4s ease, transform .4s ease; }
+.ai-quote-enter-from, .ai-quote-leave-to { opacity: 0; transform: translateY(5px); }
+.memory-timeline__header-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+.ai-diary__help { margin: -15px 0 26px; color: var(--muted); font-size: 12px; line-height: 1.85; }
+.ai-diary__dialog { width: min(650px, calc(100% - 32px)); }
+.ai-diary__description { margin: -10px 0 20px; color: var(--muted); font-size: 12px; line-height: 1.9; }
+.ai-diary__loading { display: grid; justify-items: center; align-content: center; gap: 17px; min-height: 220px; padding: 25px; color: var(--lavender-deep); text-align: center; }
+.ai-diary__loading p { margin: 0; font-size: 14px; }
+.ai-diary__loading small { color: var(--muted); font-size: 12px; }
+.ai-diary__notice { margin: 0 0 18px; padding: 11px 13px; border-radius: 12px; background: var(--lavender-soft); color: var(--lavender-deep); font-size: 12px; line-height: 1.9; }
+.ai-diary__body { min-height: 170px; margin: 0; color: var(--ink); font-family: 'Noto Serif SC', 'Songti SC', 'SimSun', serif; font-size: clamp(16px, 2.5vw, 18px); line-height: 2.05; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.ai-diary__cursor { display: inline-block; width: 2px; height: 1em; margin-left: 4px; vertical-align: -.1em; background: var(--lavender-deep); animation: ai-cursor-blink .9s steps(1) infinite; }
+.ai-diary__dialog footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.ai-diary__copy-hint { margin: 20px 0 0; color: var(--muted); font-size: 11px; }
+html:has(#ai-diary-dialog[open]) { overflow: hidden; }
+@keyframes ai-cursor-blink { 50% { opacity: 0; } }
+@media (max-width: 650px) {
+  .home-ai-quote { padding: 16px 18px; }
+  .memory-timeline__header-actions { width: 100%; }
+  .memory-timeline__header-actions > button { width: 100%; }
+  .ai-diary__dialog footer > button { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-quote-enter-active, .ai-quote-leave-active { transition: none; }
+  .ai-quote-enter-from, .ai-quote-leave-to { transform: none; }
+  .ai-diary__cursor { animation: none; }
+}

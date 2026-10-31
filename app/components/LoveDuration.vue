@@ -5,7 +5,7 @@ let timer: ReturnType<typeof setInterval> | undefined
 onMounted(() => { now.value = Date.now(); timer = setInterval(() => { now.value = Date.now() }, 1000) })
 onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 const elapsed = computed(() => {
-  const start = new Date(`${props.start}T00:00:00`).getTime()
+  const start = new Date(`${props.start}T00:00:00+08:00`).getTime()
   let seconds = Math.max(0, Math.floor((now.value - start) / 1000))
   const days = Math.floor(seconds / 86400); seconds %= 86400
   const hours = Math.floor(seconds / 3600); seconds %= 3600

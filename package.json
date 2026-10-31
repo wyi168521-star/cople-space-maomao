@@ -8,8 +8,10 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "dev": "nuxt dev --dotenv .env.local --host 0.0.0.0 --port 3200",
     "generate": "nuxt generate",
+    "db:gen-types": "node supabase/scripts/gen-types.mjs",
+    "check:deploy": "node scripts/check-deploy.mjs",
     "android:sync": "npm run generate && cap sync android",
     "android:apk": "npm run android:sync && cd android && gradlew.bat assembleDebug",
     "preview": "nuxt preview",
@@ -34,6 +36,7 @@
     "@supabase/supabase-js": "^2.110.2",
     "@uppy/core": "^5.2.0",
     "@uppy/golden-retriever": "^5.2.1",
+    "canvas-confetti": "^1.9.4",
     "leaflet": "^1.9.4",
     "nuxt": "^4.4.8",
     "three": "^0.185.1",
@@ -48,9 +51,13 @@
   "devDependencies": {
     "@capacitor/cli": "^8.4.1",
     "@playwright/test": "^1.62.0",
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/canvas-confetti": "^1.9.0",
     "electron": "^43.1.0",
     "electron-builder": "^26.15.3",
     "happy-dom": "^20.11.1",
+    "supabase": "2.122.0",
+    "tailwindcss": "^4.1.0",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },

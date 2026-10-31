@@ -1,0 +1,167 @@
+[
+  {
+    "source": "legacy-migrations/001_auth_and_couples.sql",
+    "sha256": "622e6feb0048aabfb700d0815e5a1a1364939d420092ecc94de647afe6cb3f4f",
+    "bytes": 5653
+  },
+  {
+    "source": "legacy-migrations/002_memories.sql",
+    "sha256": "02035403b9dc8c2507ab302e010b753a537828dd78cba4ee77f006db6530e7df",
+    "bytes": 2714
+  },
+  {
+    "source": "legacy-migrations/003_ai_saved_works.sql",
+    "sha256": "466e0d41058ef005669fbd5243190a08afadaea244eee0720467cb63496a79d1",
+    "bytes": 1643
+  },
+  {
+    "source": "legacy-migrations/003001_albums.sql",
+    "sha256": "34559c9586a93c4256ed93533f766bbca67cded8a2269d5d7a0afd62af4367dc",
+    "bytes": 2464
+  },
+  {
+    "source": "legacy-migrations/004_together_list.sql",
+    "sha256": "41cc590fe33f424b4d0f100b839d8c8f469c2e4217e0a72b0f77b5d7cd1ad72d",
+    "bytes": 1839
+  },
+  {
+    "source": "legacy-migrations/005_anniversaries.sql",
+    "sha256": "dfb08d55b7bec67d03197103a6acf3187c33d2bccbffb8cabdd42a23f2d71062",
+    "bytes": 1610
+  },
+  {
+    "source": "setup_messages.sql",
+    "sha256": "77bc52695d5586a095b5fae6d57911d4243064696543ab824affcc01a2ca81a8",
+    "bytes": 2252
+  },
+  {
+    "source": "upgrade_message_media.sql",
+    "sha256": "65b52ae55328d80f37ae82871fbd37c10fa6f82e2642a348f71251d4d740110f",
+    "bytes": 1984
+  },
+  {
+    "source": "upgrade_album_media.sql",
+    "sha256": "f1305335025d2110c6820493c99b64ad87c2c0796723e78db35801e171c4b53a",
+    "bytes": 1415
+  },
+  {
+    "source": "upgrade_couple_letters.sql",
+    "sha256": "9d8c9c5ea72e5fa89d48f33c31d9ba718e1c1c896956fd90660e72989ab99638",
+    "bytes": 1421
+  },
+  {
+    "source": "setup_account_management.sql",
+    "sha256": "0c90a36a633ee6022ea19b583bd5bcaa7f8cdd8673a0c2075ff7d3c078049f13",
+    "bytes": 2404
+  },
+  {
+    "source": "setup_couple_cover.sql",
+    "sha256": "809de3009211f0c12407b0188b6a540b96db8c450b39aca107e6e82ffec5697c",
+    "bytes": 102
+  },
+  {
+    "source": "upgrade_love_letter.sql",
+    "sha256": "c76fd194a0ea3fa66e9bd5f3aeb2a840e0fccef63b7dab670c5f98a009a0fc8f",
+    "bytes": 134
+  },
+  {
+    "source": "upgrade_ai_date_plans.sql",
+    "sha256": "e7d566131ec431743de5a6407758bea218f73347ff8e09400b7f71f3bfbaaffb",
+    "bytes": 247
+  },
+  {
+    "source": "hotfix_invitation_code.sql",
+    "sha256": "d84c99cfab3eabc9e8a226d9955c02a9b31ae6a432c7ad0d140fd6fca4fe42ae",
+    "bytes": 1103
+  },
+  {
+    "source": "setup_heart_ai.sql",
+    "sha256": "55c4333f42635007942acf9124fe8331000aa1e59345f64df9fd69c335f912d8",
+    "bytes": 3119
+  },
+  {
+    "source": "legacy-migrations/006_message_audio.sql",
+    "sha256": "9f968b40f71eddfa01e5d72f2be27763cb91045a2749c0eb210813a2f8c58110",
+    "bytes": 481
+  },
+  {
+    "source": "legacy-migrations/007_letters_realtime.sql",
+    "sha256": "08a7ac8277a4a561b3e30769d10b1e837dee965c53d06d6d276cd06fc35aea15",
+    "bytes": 277
+  },
+  {
+    "source": "legacy-migrations/008_pet_streak.sql",
+    "sha256": "f1ba90956a963365ce9840b7790a2a3c0b1f342f22b45f0847bd046fff2f5a47",
+    "bytes": 7760
+  },
+  {
+    "source": "legacy-migrations/009_pet_style.sql",
+    "sha256": "6d4e5536d2118e28697fa019e6a929e83d38364effc17dd5050f53306594731b",
+    "bytes": 1116
+  },
+  {
+    "source": "legacy-migrations/010_pet_evolution.sql",
+    "sha256": "9b1e7e2da91e44e2cad60ad019717692bb00407bb75658746e52831da66c9bf3",
+    "bytes": 1748
+  },
+  {
+    "source": "legacy-migrations/011_security_hardening.sql",
+    "sha256": "a5c34581f26ca7e3db72004fe93b3715bd703bc26d1b8b697572159524fdecfc",
+    "bytes": 9004
+  },
+  {
+    "source": "legacy-migrations/012_account_security.sql",
+    "sha256": "28af1fa9bf5c3bddcf93732a2ba18c2720027dc7741b5f4c967faab7cda7ab04",
+    "bytes": 3190
+  },
+  {
+    "source": "legacy-migrations/013_call_history_and_member_realtime.sql",
+    "sha256": "fe8337d2baa0468a28ebf224ccb93062e682f0d5ea1749e9422daa77a72a48cc",
+    "bytes": 3118
+  },
+  {
+    "source": "legacy-migrations/014_media_variants.sql",
+    "sha256": "408718f26326b6d908d5294885593aa8827f5538c8643b3162eee13c6d6ea116",
+    "bytes": 743
+  },
+  {
+    "source": "legacy-migrations/015_push_tokens.sql",
+    "sha256": "1be63a0bd7975361e874fb80e0a27f7ec9275fd4fac61bdc5af279a675feeaae",
+    "bytes": 2143
+  },
+  {
+    "source": "legacy-migrations/016_streak_status.sql",
+    "sha256": "c327aa8cfd61c79d1dc2066165372e233dc5029e84a9abd0dba16e8dc6c0343f",
+    "bytes": 5446
+  },
+  {
+    "source": "legacy-migrations/017_streak_protection.sql",
+    "sha256": "9872addfa20691f81d86a225a9f9fde66206e5fd921a78ba601f9c38ea4f8084",
+    "bytes": 4466
+  },
+  {
+    "source": "legacy-migrations/018_streak_history_rewards.sql",
+    "sha256": "301e2b64793e0b600c9cb48d867e8ebd2e42cc714d3a94135b442e1a52d06347",
+    "bytes": 15044
+  },
+  {
+    "source": "legacy-migrations/019_media_interactions.sql",
+    "sha256": "c455f8c4217f21cbc05aaade76429542e55e6261b09a48ae165fab1ff2a72e1b",
+    "bytes": 3438
+  },
+  {
+    "source": "legacy-migrations/020_album_photo_realtime_delete.sql",
+    "sha256": "c4de6542985edf3f2b8506eb03fff1e7c173d22edd8ea109ff615e87d321928a",
+    "bytes": 1271
+  },
+  {
+    "source": "legacy-migrations/20261027090005_init.sql",
+    "sha256": "51b73b4cba4dd710bcd1faf7c3a28b07a74be1f6a1f0ba0047a28595694c7fad",
+    "bytes": 24173
+  },
+  {
+    "source": "legacy-migrations/20261027161714_align_core_schema.sql",
+    "sha256": "298b8de74b91c5cd77b77a96e723be2b7204017a8e011d4a7048b0c55246686c",
+    "bytes": 1373
+  }
+]
