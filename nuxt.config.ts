@@ -25,6 +25,10 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  nitro: {
+    // 为会话校验与 AI 流式生成留出时间；上游仍在 45 秒时主动取消。
+    vercel: { functions: { maxDuration: 60 } },
+  },
   vite: {
     plugins: [tailwindcss()],
     optimizeDeps: {

@@ -5,6 +5,7 @@ import HomeAnniversaryCard from '../components/HomeAnniversaryCard.vue'
 import HomeDashboard from '../components/HomeDashboard.vue'
 import LoveDuration from '../components/LoveDuration.vue'
 import HomeLoveQuote from '../components/HomeLoveQuote.vue'
+import AICompanionChat from '../components/AICompanionChat.vue'
 import { useAI } from '../composables/useAI'
 import { homepageQuoteInput } from '../utils/aiPresentation'
 import '../styles/auth-flow.css'
@@ -114,4 +115,5 @@ async function leaveAccount() {
       <p class="love-flow__outside-note">小家已就绪，接下来是我们一起的每一天。</p>
     </div>
   </main>
+  <AICompanionChat v-if="stage === 'paired'" />
 </template>

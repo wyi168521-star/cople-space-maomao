@@ -55,13 +55,19 @@ export async function readAiInput<T>(event: H3Event, parse: (input: unknown) => 
   catch (error) { throw aiError(400, 'INVALID_INPUT', error instanceof Error ? error.message : '请求内容不正确。') }
 }
 
-export async function generateAiText(event: H3Event, userId: string, kind: AIFeature, system: string, input: unknown): Promise<AIResponse> {
+/** 各 AI 接口共享私有配置与按真实用户计数的限流器。 */
+export function aiProvider(event: H3Event, userId: string) {
   const config = useRuntimeConfig(event)
   const key = String(config.deepseekApiKey || process.env.DEEPSEEK_API_KEY || '').trim()
   const model = String(config.deepseekModel || 'deepseek-flash').trim()
   if (!key) throw aiError(503, 'AI_NOT_CONFIGURED', 'AI 尚未配置，将为你使用本地内容。')
   if (!/^[A-Za-z0-9._-]{1,80}$/.test(model)) throw aiError(503, 'AI_NOT_CONFIGURED', 'AI 模型配置无效。')
   if (!allowed(userId)) throw aiError(429, 'AI_RATE_LIMITED', '生成得有点频繁，休息一会儿再试吧。')
+  return { key, model }
+}
+
+export async function generateAiText(event: H3Event, userId: string, kind: AIFeature, system: string, input: unknown): Promise<AIResponse> {
+  const { key, model } = aiProvider(event, userId)
 
   let response: { choices?: { message?: { content?: unknown }; finish_reason?: string }[] }
   try {
