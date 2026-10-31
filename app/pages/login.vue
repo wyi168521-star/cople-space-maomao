@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { Heart, KeyRound, LoaderCircle, Mail, RefreshCw, ShieldCheck, UserRound } from '@lucide/vue'
 import GlassCard from '../components/ui/GlassCard.vue'
+import { normalizeCoupleId } from '../utils/pairingInvite'
 import '../styles/auth-flow.css'
 
 useHead({ title: '登录 · Love小家' })
 
-const { configured, user, stage, initialized, loading, authError, initializationError, retryInitialization, signIn, signUp, resendConfirmation } = useAuth()
+const { configured, user, stage, initialized, loading, authError, initializationError, retryInitialization, signIn, signUp, resendConfirmation, authRedirect } = useAuth()
+const route = useRoute()
+const inviteId = computed(() => normalizeCoupleId(route.query.invite))
+const invalidInvite = computed(() => route.query.invite !== undefined && !inviteId.value)
 const mode = ref<'login' | 'signup'>('login')
 const displayName = ref('')
 const email = ref('')
@@ -19,10 +23,10 @@ const busy = computed(() => pending.value || loading.value || !initialized.value
 const awaitingConfirmation = computed(() => !confirmationDismissed.value && !user.value && (stage.value === 'awaiting-confirmation' || !!signupEmail.value))
 
 watch(authError, message => { if (message) pageError.value = message })
-watch([initialized, stage], ([ready, nextStage]) => {
+watch([initialized, stage, () => route.query.invite], ([ready]) => {
   if (!ready) return
-  if (nextStage === 'paired') void navigateTo('/', { replace: true })
-  if (nextStage === 'unpaired' || nextStage === 'membership-error') void navigateTo('/pairing', { replace: true })
+  const redirect = authRedirect(route.path, route.query.invite)
+  if (redirect) void navigateTo(redirect, { replace: true })
 }, { immediate: true })
 
 function changeMode(next: 'login' | 'signup') {
@@ -52,7 +56,7 @@ async function submit() {
   pending.value = true
   try {
     if (mode.value === 'signup') {
-      await signUp(displayName.value.trim(), normalizedEmail, password.value)
+      await signUp(displayName.value.trim(), normalizedEmail, password.value, route.query.invite)
       if (!user.value) {
         signupEmail.value = normalizedEmail
         confirmationDismissed.value = false
@@ -74,7 +78,7 @@ async function resendEmail() {
   pageError.value = ''
   resendStatus.value = ''
   try {
-    await resendConfirmation(signupEmail.value || email.value.trim())
+    await resendConfirmation(signupEmail.value || email.value.trim(), route.query.invite)
     resendStatus.value = '确认邮件已重新发送，请查看收件箱和垃圾邮件。'
   } catch (error) {
     pageError.value = authError.value || (error instanceof Error ? error.message : '邮件发送失败，请稍后再试。')
@@ -115,6 +119,8 @@ async function retrySession() {
       </section>
 
       <GlassCard as="section" padding="lg" class="love-flow__card" aria-labelledby="auth-heading" :aria-busy="busy">
+        <p v-if="inviteId" class="love-flow__notice" role="status">你收到一份小家邀请，登录或注册后即可确认加入。</p>
+        <p v-else-if="invalidInvite" class="love-flow__notice" role="status">这份邀请链接无效，请向对方重新获取链接；也可以登录后手动加入空间。</p>
         <template v-if="awaitingConfirmation">
           <span class="love-flow__icon"><Mail :size="28" aria-hidden="true" /></span>
           <p class="love-flow__eyebrow">只差一步</p>

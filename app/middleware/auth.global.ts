@@ -12,6 +12,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (auth.user.value && !auth.membershipReady.value && auth.stage.value !== 'membership-error') {
     await auth.refreshMembership().catch(() => {})
   }
-  const redirect = auth.authRedirect(to.path)
+  const redirect = auth.authRedirect(to.path, to.query.invite)
   if (redirect) return navigateTo(redirect, { replace: true })
 })

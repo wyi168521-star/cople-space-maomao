@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, Copy, Heart, Images, LoaderCircle, LogOut, MessageCircleHeart } from '@lucide/vue'
+import { Check, Copy, Heart, Images, Link2, LoaderCircle, LogOut, MessageCircleHeart } from '@lucide/vue'
 import GlassCard from '../components/ui/GlassCard.vue'
 import HomeAnniversaryCard from '../components/HomeAnniversaryCard.vue'
 import HomeDashboard from '../components/HomeDashboard.vue'
@@ -99,11 +99,12 @@ async function leaveAccount() {
           <NuxtLink to="/timeline" class="love-flow__secondary" style="text-decoration: none;">打开我们的时光轴</NuxtLink>
           <NuxtLink to="/whispers" class="love-flow__secondary" style="text-decoration: none;"><MessageCircleHeart :size="18" aria-hidden="true" />悄悄话</NuxtLink>
           <NuxtLink to="/albums" class="love-flow__secondary" style="text-decoration: none;"><Images :size="18" aria-hidden="true" />相册</NuxtLink>
+          <NuxtLink to="/pairing" class="love-flow__secondary" style="text-decoration: none;"><Link2 :size="18" aria-hidden="true" />邀请另一半</NuxtLink>
         </nav>
 
         <div class="love-flow__space-box">
           <label for="home-couple-id">空间编号 <span>couple_id</span></label>
-          <p>把这个编号分享给另一半，TA 登录后就可以加入。</p>
+          <p>也可以点击“邀请另一半”，发送专属链接让 TA 确认加入。</p>
           <textarea id="home-couple-id" ref="idInput" class="love-flow__space-id" :value="coupleId" readonly rows="2" aria-describedby="space-id-description" @focus="idInput?.select()" />
           <span id="space-id-description" class="love-flow__hint">请完整复制，包括编号中的连字符。</span>
           <button class="love-flow__primary" type="button" :disabled="!coupleId || copying || busy" @click="copyId"><Check v-if="copied" :size="18" aria-hidden="true" /><Copy v-else :size="18" aria-hidden="true" />{{ copied ? '已复制空间编号' : '复制空间编号' }}</button>

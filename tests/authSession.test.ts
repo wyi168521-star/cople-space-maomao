@@ -291,7 +291,37 @@ describe('shared auth session', () => {
       : { p_couple_id: coupleId })
     expect(auth.stage.value).toBe('paired')
     expect(auth.profile.value).toMatchObject({ coupleId, nameA: '小林', nameB: '小许', startDate: '2024-05-20' })
-    expect(auth.authRedirect('/pairing')).toBe('/')
+    expect(auth.authRedirect('/pairing')).toBeNull()
+  })
+
+  it('keeps invitations through signed-out, unpaired and already-paired routing', async () => {
+    const { auth, client, read } = fixture()
+    await auth.initialize()
+    expect(auth.authRedirect('/pairing', coupleId)).toBe(`/login?invite=${coupleId}`)
+    expect(auth.authRedirect('/login', coupleId)).toBeNull()
+    client.auth.signInWithPassword.mockResolvedValue({ data: { session: { user: accountB } }, error: null })
+    await auth.signIn('b@example.com', 'test-password')
+    expect(auth.authRedirect('/login', coupleId)).toBe(`/pairing?invite=${coupleId}`)
+    expect(auth.authRedirect('/pairing', coupleId)).toBeNull()
+    read.mockResolvedValue(paired('b'))
+    await auth.refreshMembership()
+    expect(auth.authRedirect('/pairing', coupleId)).toBeNull()
+    expect(auth.authRedirect('/login', coupleId)).toBe(`/pairing?invite=${coupleId}`)
+    expect(auth.authRedirect('/login')).toBe('/')
+    expect(client.rpc).not.toHaveBeenCalled()
+  })
+
+  it('retains invitations in signup and resend return URLs without accepting arbitrary redirect targets', async () => {
+    const { auth, client } = fixture()
+    client.auth.signUp.mockResolvedValue({ data: { session: null }, error: null })
+    await auth.signUp('小许', 'b@example.com', 'test-password', coupleId)
+    expect(client.auth.signUp).toHaveBeenCalledWith(expect.objectContaining({
+      options: { data: { display_name: '小许' }, emailRedirectTo: `${window.location.origin}/pairing?invite=${coupleId}` },
+    }))
+    await auth.resendConfirmation('b@example.com', coupleId)
+    expect(client.auth.resend).toHaveBeenLastCalledWith(expect.objectContaining({ options: { emailRedirectTo: `${window.location.origin}/pairing?invite=${coupleId}` } }))
+    await auth.resendConfirmation('b@example.com', 'https://external.example/steal')
+    expect(client.auth.resend).toHaveBeenLastCalledWith(expect.objectContaining({ options: { emailRedirectTo: `${window.location.origin}/` } }))
   })
 
   it('aborts pre-write membership reads before refreshing a successful pairing', async () => {

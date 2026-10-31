@@ -1,5 +1,6 @@
 import { computed } from 'vue'
 import type { User } from '@supabase/supabase-js'
+import { buildPairingInvite, inviteAuthPath } from '../utils/pairingInvite'
 
 export type CoupleStage = 'signed-out' | 'awaiting-confirmation' | 'unpaired' | 'paired' | 'membership-error' | 'initialization-error'
 export type OAuthProvider = 'google' | 'github'
@@ -346,7 +347,7 @@ export function useCoupleAuth() {
     })
   }
 
-  async function signUp(displayName: string, email: string, password: string) {
+  async function signUp(displayName: string, email: string, password: string, invite?: unknown) {
     await initialize()
     if (initializationError.value) throw new Error(initializationError.value)
     return withAction(async () => {
@@ -355,7 +356,7 @@ export function useCoupleAuth() {
       if (!displayName.trim()) throw new Error('请输入你的昵称')
       const { data, error } = await requireClient().auth.signUp({
         email: email.trim(), password,
-        options: { data: { display_name: displayName.trim() }, emailRedirectTo: `${window.location.origin}/` },
+        options: { data: { display_name: displayName.trim() }, emailRedirectTo: buildPairingInvite(window.location.origin, invite) || `${window.location.origin}/` },
       })
       if (error) throw error
       assertCurrentAuthResult(data.session?.user || null, intent, eventRevision)
@@ -375,10 +376,10 @@ export function useCoupleAuth() {
     )) throw new Error('登录会话已变化，请重新操作')
   }
 
-  async function resendConfirmation(email: string) {
+  async function resendConfirmation(email: string, invite?: unknown) {
     return withAction(async () => {
       const { error } = await requireClient().auth.resend({
-        type: 'signup', email: email.trim(), options: { emailRedirectTo: `${window.location.origin}/` },
+        type: 'signup', email: email.trim(), options: { emailRedirectTo: buildPairingInvite(window.location.origin, invite) || `${window.location.origin}/` },
       })
       if (error) throw error
     })
@@ -504,11 +505,13 @@ export function useCoupleAuth() {
     })
   }
 
-  function authRedirect(path: string): string | null {
-    if (initializationError.value || stage.value === 'initialization-error') return path === '/login' ? null : '/login'
-    if (!user.value) return path === '/login' ? null : '/login'
-    if (stage.value !== 'paired') return path === '/pairing' ? null : '/pairing'
-    return path === '/login' || path === '/pairing' ? '/' : null
+  function authRedirect(path: string, invite?: unknown): string | null {
+    if (initializationError.value || stage.value === 'initialization-error') return path === '/login' ? null : inviteAuthPath('/login', invite)
+    if (!user.value) return path === '/login' ? null : inviteAuthPath('/login', invite)
+    if (stage.value !== 'paired') return path === '/pairing' ? null : inviteAuthPath('/pairing', invite)
+    // 已配对用户也能打开邀请管理页；登录收到的邀请后在该页说明当前状态。
+    if (path !== '/login') return null
+    return invite === undefined ? '/' : inviteAuthPath('/pairing', invite)
   }
 
   function disposeSession() {

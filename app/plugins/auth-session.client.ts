@@ -8,7 +8,7 @@ export default defineNuxtPlugin({
 
     function syncRoute() {
       if (!mounted || !auth.initialized.value || auth.membershipLoading.value) return
-      const redirect = auth.authRedirect(router.currentRoute.value.path)
+      const redirect = auth.authRedirect(router.currentRoute.value.path, router.currentRoute.value.query.invite)
       if (redirect) void router.replace(redirect).catch(() => {})
     }
 

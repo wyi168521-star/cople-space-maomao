@@ -74,6 +74,9 @@
 .love-flow__space-box > p:not(.love-flow__copy-status) { margin: 7px 0 15px; color: #89728f; font-size: 12px; }
 .love-flow__space-id { display: block; width: 100%; min-height: 65px; margin-bottom: 9px; padding: 11px 10px; resize: none; border: 1px solid #dcc7e7; border-radius: 11px; background: rgba(247,239,251,.8); color: #754b8c; font-family: ui-monospace, Consolas, monospace !important; font-size: clamp(11px, 2.8vw, 14px) !important; line-height: 1.6; overflow-wrap: anywhere; }
 .love-flow__space-box .love-flow__primary { margin-top: 17px; }
+.love-flow__invite-box { margin-top: 0; }
+.love-flow__invite-box > label { display: flex; align-items: center; gap: 8px; }
+.love-flow__invite-home { margin-top: 16px; text-decoration: none; }
 .love-flow__copy-status { min-height: 20px; margin: 10px 0 0; color: #735484; font-size: 12px; }
 .love-flow__spinner { animation: love-flow-spin .8s linear infinite; }
 @keyframes love-flow-spin { to { transform: rotate(360deg); } }
