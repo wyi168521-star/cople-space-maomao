@@ -34,7 +34,7 @@ async function copyInvitation() {
   <section class="love-flow__space-box love-flow__invite-box" aria-labelledby="space-invite-label">
     <label id="space-invite-label" for="space-invite-url"><Link2 :size="17" aria-hidden="true" />专属邀请链接</label>
     <p id="space-invite-help">把这份邀请发给另一半，登录或注册后，轻点确认就能加入。</p>
-    <textarea id="space-invite-url" ref="linkInput" class="love-flow__space-id" :value="inviteLink" readonly rows="3" aria-describedby="space-invite-help" @focus="linkInput?.select()" />
+    <textarea id="space-invite-url" ref="linkInput" class="love-flow__space-id" :value="inviteLink" readonly rows="4" aria-describedby="space-invite-help" @focus="linkInput?.select()" />
     <button class="love-flow__primary" type="button" :disabled="!inviteLink || copying" @click="copyInvitation">
       <Check v-if="copied" :size="18" aria-hidden="true" /><Copy v-else :size="18" aria-hidden="true" />{{ copied ? '已复制邀请链接' : copying ? '正在复制…' : '复制邀请链接' }}
     </button>
