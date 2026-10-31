@@ -5,7 +5,7 @@ import { useAIChat } from '../composables/useAIChat'
 import { CHAT_USER_LIMIT } from '#shared/utils/aiChat'
 import '../styles/ai-chat.css'
 
-const { messages, loading, notice, sendMessage, stop, clear } = useAIChat()
+const { allMessages, summary, loading, notice, sendMessage, stop, clear } = useAIChat()
 const dialog = ref<HTMLDialogElement | null>(null)
 const launcher = ref<HTMLButtonElement | null>(null)
 const input = ref<HTMLTextAreaElement | null>(null)
@@ -58,7 +58,7 @@ function onKeydown(event: KeyboardEvent) {
   event.preventDefault(); submit()
 }
 function clearChat() { clear(); input.value?.focus() }
-watch([() => messages.value.length, () => messages.value.at(-1)?.content, loading], () => { void scrollBottom() }, { flush: 'post' })
+watch([() => allMessages.value.length, () => allMessages.value.at(-1)?.content, loading], () => { void scrollBottom() }, { flush: 'post' })
 onMounted(() => {
   sizeObserver = new ResizeObserver(() => { void scrollBottom() })
   if (scroller.value) sizeObserver.observe(scroller.value)
@@ -81,17 +81,21 @@ onBeforeUnmount(() => {
       <header class="ai-chat__header">
         <span class="ai-chat__avatar"><Sparkles :size="23" aria-hidden="true" /></span>
         <div class="ai-chat__heading"><h2 id="ai-chat-title">与大毛聊聊</h2><p id="ai-chat-description">大毛在这里，听你慢慢说</p></div>
-        <button class="ai-chat__icon" type="button" :disabled="!messages.length" aria-label="清空与大毛的对话" title="清空与大毛的对话" @click="clearChat"><Trash2 :size="18" aria-hidden="true" /></button>
+        <button class="ai-chat__icon" type="button" :disabled="!allMessages.length" aria-label="清空与大毛的对话" title="清空与大毛的对话" @click="clearChat"><Trash2 :size="18" aria-hidden="true" /></button>
         <button class="ai-chat__icon" type="button" aria-label="关闭与大毛的对话" @click="closeChat"><X :size="21" aria-hidden="true" /></button>
       </header>
+      <details v-if="summary" class="ai-chat__memory">
+        <summary>大毛记下的小事</summary>
+        <p>{{ summary }}</p>
+      </details>
 
       <div ref="scroller" class="ai-chat__messages" role="log" aria-label="与大毛的聊天记录" aria-live="polite" aria-relevant="additions" :aria-busy="loading">
-        <div v-if="!messages.length" class="ai-chat__welcome">
+        <div v-if="!allMessages.length" class="ai-chat__welcome">
           <span><Heart :size="30" aria-hidden="true" /></span><h3>今天，想和大毛聊些什么？</h3>
           <p>一件开心的小事，或是还没说出口的心情，<br>都可以慢慢说给我听。</p>
           <button type="button" @click="draft = '帮我们想一个简单又浪漫的约会吧'; input?.focus(); resizeInput()">让大毛帮我们想个约会 <Sparkles :size="14" aria-hidden="true" /></button>
         </div>
-        <article v-for="message in messages" :key="message.id" class="ai-chat__row" :class="{ 'is-mine': message.role === 'user' }" :data-source="message.source">
+        <article v-for="message in allMessages" :key="message.id" class="ai-chat__row" :class="{ 'is-mine': message.role === 'user' }" :data-source="message.source">
           <span class="ai-chat__sender">{{ message.role === 'user' ? '我' : '大毛' }}</span>
           <p class="ai-chat__bubble">
             <span v-if="message.content">{{ message.content }}</span>
@@ -110,7 +114,7 @@ onBeforeUnmount(() => {
         <textarea id="ai-chat-input" ref="input" v-model="draft" rows="1" :maxlength="CHAT_USER_LIMIT" placeholder="想和大毛说些什么？" @input="resizeInput" @keydown="onKeydown" />
         <button v-if="loading" class="ai-chat__send" type="button" aria-label="停止大毛的回复" @click="stop"><Square :size="15" aria-hidden="true" /><span>停止</span></button>
         <button v-else class="ai-chat__send" type="submit" :disabled="!draft.trim()" aria-label="发送给大毛"><Send :size="18" aria-hidden="true" /><span>发送</span></button>
-        <p>AI 生成 · 对话刷新后清空 <span>Enter 发送 / Shift + Enter 换行</span></p>
+        <p>AI 生成 · 对话与回忆刷新后清空 <span>Enter 发送 / Shift + Enter 换行</span></p>
       </form>
     </dialog>
   </Teleport>
