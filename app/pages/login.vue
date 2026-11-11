@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { Heart, KeyRound, LoaderCircle, Mail, RefreshCw, ShieldCheck, UserRound } from '@lucide/vue'
 import GlassCard from '../components/ui/GlassCard.vue'
+import { clearSupabaseLocalSession } from '../lib/supabase'
 import { normalizeCoupleId } from '../utils/pairingInvite'
 import '../styles/auth-flow.css'
 
 useHead({ title: '登录 · Love小家' })
 
-const { configured, user, stage, initialized, loading, authError, initializationError, retryInitialization, signIn, signUp, resendConfirmation, authRedirect } = useAuth()
+const { configured, user, stage, initialized, loading, membershipLoading, authError, initializationError, retryInitialization, disposeSession, signIn, signUp, resendConfirmation, authRedirect } = useAuth()
+const config = useRuntimeConfig()
 const route = useRoute()
 const inviteId = computed(() => normalizeCoupleId(route.query.invite))
 const invalidInvite = computed(() => route.query.invite !== undefined && !inviteId.value)
@@ -18,13 +20,16 @@ const signupEmail = ref('')
 const confirmationDismissed = ref(false)
 const pageError = ref(authError.value || '')
 const resendStatus = ref('')
+const recoveryError = ref('')
 const pending = ref(false)
 const busy = computed(() => pending.value || loading.value || !initialized.value)
 const awaitingConfirmation = computed(() => !confirmationDismissed.value && !user.value && (stage.value === 'awaiting-confirmation' || !!signupEmail.value))
 
-watch(authError, message => { if (message) pageError.value = message })
-watch([initialized, stage, () => route.query.invite], ([ready]) => {
-  if (!ready) return
+watch(authError, (message, previous) => {
+  if (message || pageError.value === previous) pageError.value = message
+})
+watch([initialized, stage, membershipLoading, () => route.query.invite], ([ready]) => {
+  if (!ready || membershipLoading.value) return
   const redirect = authRedirect(route.path, route.query.invite)
   if (redirect) void navigateTo(redirect, { replace: true })
 }, { immediate: true })
@@ -96,9 +101,24 @@ async function retrySession() {
   if (busy.value) return
   pending.value = true
   pageError.value = ''
+  recoveryError.value = ''
   try { await retryInitialization() }
   catch (error) { pageError.value = error instanceof Error ? error.message : '登录状态检查失败，请稍后重试。' }
   finally { pending.value = false }
+}
+
+function resetLocalSession() {
+  if (busy.value) return
+  recoveryError.value = ''
+  try {
+    // Only this Supabase project's browser credentials are removed. Reloading
+    // preserves the invitation URL and starts a fresh SDK instance.
+    clearSupabaseLocalSession(String(config.public.supabaseUrl || ''))
+    disposeSession()
+    window.location.reload()
+  } catch {
+    recoveryError.value = '无法清除本机登录状态，请允许浏览器访问本站存储后重试。'
+  }
 }
 </script>
 
@@ -151,6 +171,8 @@ async function retrySession() {
             <strong>登录状态检查失败</strong>
             <p>{{ initializationError }}</p>
             <button class="love-flow__text-button" type="button" :disabled="busy || !configured" @click="retrySession"><RefreshCw :size="16" aria-hidden="true" />重新检查登录状态</button>
+            <button class="love-flow__text-button" type="button" :disabled="busy || !configured" @click="resetLocalSession">清除本机登录状态并重新登录</button>
+            <p v-if="recoveryError" role="status">{{ recoveryError }}</p>
           </div>
           <form id="auth-panel" class="love-flow__form" role="tabpanel" :aria-labelledby="`auth-tab-${mode}`" @submit.prevent="submit">
             <fieldset :disabled="busy || !configured || !!initializationError">

@@ -72,11 +72,11 @@ afterEach(() => {
 })
 
 describe('shared auth session', () => {
-  it('settles a locked SDK session read at its deadline and exposes a retryable initialization error', async () => {
-    const { auth, client, emitFrom } = fixture()
+  it('bounds a stuck SDK session read without expiring the UI before its refresh retry budget', async () => {
+    const { auth, client } = fixture()
     client.auth.getSession.mockReturnValue(new Promise(() => {}))
     const initializing = auth.initialize()
-    await vi.advanceTimersByTimeAsync(7_999)
+    await vi.advanceTimersByTimeAsync(44_999)
     expect(auth.initialized.value).toBe(false)
     await vi.advanceTimersByTimeAsync(1)
     await initializing
@@ -84,11 +84,61 @@ describe('shared auth session', () => {
     expect(auth.initializationError.value).toContain('登录状态恢复超时')
     expect(auth.stage.value).toBe('initialization-error')
     expect(auth.authRedirect('/pairing')).toBe('/login')
-    emitFrom(0, 'SIGNED_IN', accountA)
-    await vi.advanceTimersByTimeAsync(0)
     expect(auth.user.value).toBeNull()
     await expect(auth.signIn('a@example.com', 'correct-password')).rejects.toThrow('重新检查登录状态')
     expect(client.auth.signInWithPassword).not.toHaveBeenCalled()
+  })
+
+  it('accepts a slow 16-second session refresh without prematurely showing an initialization error', async () => {
+    const { auth, client, read } = fixture()
+    const refreshed = deferred<{ data: { session: { user: User } }; error: null }>()
+    client.auth.getSession.mockReturnValue(refreshed.promise)
+    read.mockResolvedValue(paired())
+    const initializing = auth.initialize()
+    await vi.advanceTimersByTimeAsync(16_000)
+    expect(auth.initialized.value).toBe(false)
+    expect(auth.initializationError.value).toBe('')
+    refreshed.resolve({ data: { session: { user: accountA } }, error: null })
+    await initializing
+    expect(auth.user.value?.id).toBe(accountA.id)
+    expect(auth.stage.value).toBe('paired')
+    expect(auth.initializationError.value).toBe('')
+  })
+
+  it.each(['SIGNED_IN', 'TOKEN_REFRESHED', 'SIGNED_OUT'] as const)('recovers from an initialization timeout on a legitimate late %s event', async event => {
+    const { auth, client, read, emit } = fixture()
+    client.auth.getSession.mockReturnValue(new Promise(() => {}))
+    read.mockResolvedValue(paired())
+    const initializing = auth.initialize()
+    await vi.advanceTimersByTimeAsync(45_000)
+    await initializing
+    expect(auth.stage.value).toBe('initialization-error')
+    emit(event, event === 'SIGNED_OUT' ? null : accountA)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(auth.initialized.value).toBe(true)
+    expect(auth.initializationError.value).toBe('')
+    expect(auth.authError.value).toBe('')
+    expect(auth.stage.value).toBe(event === 'SIGNED_OUT' ? 'signed-out' : 'paired')
+    expect(auth.profile.value?.coupleId || null).toBe(event === 'SIGNED_OUT' ? null : coupleId)
+  })
+
+  it('reuses an SDK recovery still in flight when explicitly rechecking, without pretending to cancel it', async () => {
+    const { auth, client, read, emitFrom } = fixture()
+    const sharedSdkRecovery = deferred<{ data: { session: { user: User } }; error: null }>()
+    client.auth.getSession.mockReturnValue(sharedSdkRecovery.promise)
+    read.mockResolvedValue(paired('b'))
+    const first = auth.initialize()
+    await vi.advanceTimersByTimeAsync(45_000)
+    await first
+    const retrying = auth.retryInitialization()
+    emitFrom(0, 'SIGNED_IN', accountA)
+    expect(auth.user.value).toBeNull()
+    sharedSdkRecovery.resolve({ data: { session: { user: accountB } }, error: null })
+    await retrying
+    expect(auth.user.value?.id).toBe(accountB.id)
+    expect(auth.stage.value).toBe('paired')
+    expect(auth.initializationError.value).toBe('')
+    expect(client.auth.getSession).toHaveBeenCalledTimes(2)
   })
 
   it('retries immediately while an older SDK read never settles and ignores its late snapshot and callbacks', async () => {
@@ -120,7 +170,7 @@ describe('shared auth session', () => {
     const { auth, client } = fixture()
     client.auth.getSession.mockReturnValueOnce(new Promise(() => {}))
     const first = auth.initialize()
-    await vi.advanceTimersByTimeAsync(8_000)
+    await vi.advanceTimersByTimeAsync(45_000)
     await first
     expect(auth.initializationError.value).not.toBe('')
     await auth.retryInitialization()

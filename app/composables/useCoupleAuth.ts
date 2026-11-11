@@ -40,12 +40,15 @@ type AuthRuntime = {
 // Non-serializable work belongs to one Nuxt app and never enters its SSR payload.
 const runtimes = new WeakMap<object, AuthRuntime>()
 const AUTH_DEADLINE_MS = 8_000
+// A stored, expired session can require the SDK's 30s refresh retry budget
+// plus its final network attempt. Membership reads keep the shorter deadline.
+const SESSION_DEADLINE_MS = 45_000
 
 class AuthDeadlineError extends Error { override name = 'AuthDeadlineError' }
 class AuthCancelledError extends Error { override name = 'AuthCancelledError' }
 
 /** Race the whole SDK operation, including time spent waiting for its auth lock. */
-function boundedTask<T>(work: () => T | PromiseLike<T>, message: string, onTimeout?: () => void): BoundedTask<T> {
+function boundedTask<T>(work: () => T | PromiseLike<T>, message: string, onTimeout?: () => void, deadlineMs = AUTH_DEADLINE_MS): BoundedTask<T> {
   let settled = false
   let timer: ReturnType<typeof setTimeout>
   let cancel = () => {}
@@ -59,7 +62,7 @@ function boundedTask<T>(work: () => T | PromiseLike<T>, message: string, onTimeo
     timer = setTimeout(() => finish(() => {
       onTimeout?.()
       reject(new AuthDeadlineError(message))
-    }), AUTH_DEADLINE_MS)
+    }), deadlineMs)
     cancel = () => finish(() => reject(new AuthCancelledError('认证操作已被新的操作替代')))
     // Attach both handlers even when work never honors cancellation or AbortSignal.
     try {
@@ -235,6 +238,22 @@ export function useCoupleAuth() {
       if (generation !== sessionRuntime.subscriptionGeneration) return
       sessionRuntime.authEventRevision++
       applyUser(session?.user || null)
+      // A deadline settles our UI, not the SDK's in-flight recovery. A valid
+      // event from this still-current subscription may complete that recovery.
+      const recovered = Boolean(initializationError.value) && (
+        ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && Boolean(session?.user)) ||
+        (event === 'SIGNED_OUT' && !session?.user)
+      )
+      if (recovered) {
+        initializationError.value = ''
+        authError.value = ''
+        initialized.value = true
+        invalidateMembership()
+        membershipReady.value = false
+        membershipLoading.value = Boolean(session?.user)
+        stage.value = 'signed-out'
+        diagnostic('getSession:recovered', { event, hasSession: Boolean(session?.user), generation })
+      }
       diagnostic('session:event', { event, hasUser: Boolean(session?.user), generation })
       // Auth callbacks run under the SDK's auth lock. Start DB work in a later task.
       if (session?.user) {
@@ -275,7 +294,7 @@ export function useCoupleAuth() {
         const client = requireClient()
         const eventRevision = sessionRuntime.authEventRevision
         diagnostic('getSession:start', { generation })
-        const request = boundedTask(() => client.auth.getSession(), '登录状态恢复超时，请检查网络后重试')
+        const request = boundedTask(() => client.auth.getSession(), '登录状态恢复超时，登录服务响应较慢或当前网络暂时无法连接', undefined, SESSION_DEADLINE_MS)
         task.cancel = request.cancel
         if (task.hasAuthEvent) request.cancel()
         const { data, error } = await request.promise
@@ -299,10 +318,11 @@ export function useCoupleAuth() {
           }
         } else if (!sessionResolved) {
           diagnostic('getSession:error', { generation, kind: errorKind(error), elapsedMs: Date.now() - startedAt })
-          // Retire this listener as well as the promise: its late events are stale.
-          stopSessionListener()
+          // Keep this subscription: the SDK may still finish token refresh.
+          // Retry, logout and disposal explicitly retire its generation.
           invalidateMembership()
-          initializationError.value = `无法恢复登录状态：${errorMessage(error)}。请重新检查登录状态。`
+          const detail = errorMessage(error).replace(/[。.!！]+$/, '')
+          initializationError.value = `无法恢复登录状态：${detail}。请重新检查登录状态；若持续失败，可清除本机登录状态后重新登录。`
           authError.value = initializationError.value
           stage.value = 'initialization-error'
         }
