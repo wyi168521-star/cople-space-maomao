@@ -8,6 +8,7 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
+    "build:cloudflare": "nuxt build --preset=cloudflare_pages",
     "dev": "nuxt dev --dotenv .env.local --host 0.0.0.0 --port 3200",
     "generate": "nuxt generate",
     "db:gen-types": "node supabase/scripts/gen-types.mjs",

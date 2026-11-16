@@ -27,6 +27,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate deployment settings
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=0
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID NUXT_PUBLIC_SUPABASE_URL NUXT_PUBLIC_SUPABASE_ANON_KEY; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing GitHub Actions secret: $name. See docs/AUTH_RECOVERY.md."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -39,12 +54,17 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
 
-      - name: Generate static site
-        run: npm run generate
+      - name: Build Cloudflare Pages server and assets
+        run: npm run build:cloudflare
+
+      - name: Verify server output
+        run: |
+          test -s dist/_worker.js/index.js
+          test -s dist/_routes.json
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .output/public --project-name=love-home --branch=main
+          command: pages deploy dist --project-name=love-home --branch=main

@@ -19,6 +19,39 @@ SDK 的项目 URL、会话 storage key 和已有登录数据不变，无需新�
 
 ## 验证
 
+### Cloudflare Pages 部署
+
+运行 42984761510（cb2abfb）在 Wrangler 部署步骤失败：非交互环境缺少
+`CLOUDFLARE_API_TOKEN`。同一次运行中的 Cloudflare account ID 和 Supabase 配置也为空。
+Node.js 弃用警告不是该次失败的原因。
+
+在 GitHub 仓库 Settings → Secrets and variables → Actions 中配置以下 repository secrets：
+
+- `CLOUDFLARE_API_TOKEN`：对目标账户具有 Cloudflare Pages Edit 权限的 API token。
+- `CLOUDFLARE_ACCOUNT_ID`：已有 `love-home` Pages 项目所在账户的 ID。
+- `NUXT_PUBLIC_SUPABASE_URL`：云端 Supabase 项目 HTTPS URL。
+- `NUXT_PUBLIC_SUPABASE_ANON_KEY`：同一项目的 anon / publishable key，不能使用 service-role key。
+
+这些值须可供部署 job 读取；仅设置在 Cloudflare 控制台或 GitHub variables 中不会提供
+工作流所引用的 GitHub secrets。预检只输出缺失项名称，不输出值。
+
+部署使用 `npm run build:cloudflare`，保留 Nitro `/api/supabase/**` 服务端路由，
+将 `dist`（包含 `_worker.js/index.js` 和 `_routes.json`）交给 Wrangler。
+`npm run generate` 仍用于静态/移动端构建，但它不能部署这个服务端登录转发。
+`wrangler.toml` 固定输出目录、兼容日期和 `nodejs_compat`，供构建与部署共同使用。
+Supabase 公开配置在 Actions 构建时注入；若 Pages 配置了同名运行时变量，需与构建值一致。
+
+合并修复并配置 secrets 后，在 Actions 中对最新 main 运行
+“Deploy Love Home to Cloudflare Pages”（不要重跑旧提交的失败 run）。
+确认预检、构建、产物检查和部署全部成功，再打开 https://love-home.pages.dev/login：
+
+- Network 中 Auth/REST 应访问同源 `/api/supabase/`，响应应为 API JSON，不能是静态 HTML 或 404。
+- 使用自己的账户登录，确认 token 请求成功并能读取空间信息；刷新页面确认会话恢复。
+- 可先 GET `/api/supabase/auth/v1/settings` 检查服务连通性；503 表示缺少运行时配置，502/504 表示上游连接失败。
+
+本地可用 `npm run build:cloudflare` 和 `npx wrangler pages dev dist` 检查 Worker；
+需要使用测试项目配置。不要将真实密码或 token 粘贴到日志、工单或测试夹具中。
+
 - `tests/authRecoverySdk.test.ts` 使用真实 Supabase SDK 恢复过期的测试会话，模拟超过 8 秒的刷新和一次网络重试。
 - `tests/authSession.test.ts` 检查总截止时间、晚到事件恢复、陈旧回调隔离与邀请路由。
 - `tests/supabaseRelay.test.ts` 检查请求、状态码、count 头、权限转发、超时、断连和路径限制。
