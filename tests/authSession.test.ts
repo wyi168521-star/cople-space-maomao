@@ -72,6 +72,17 @@ afterEach(() => {
 })
 
 describe('shared auth session', () => {
+  it('fails visibly before login when persistent storage is unavailable', async () => {
+    const { auth, client } = fixture()
+    const blocked = vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => { throw new DOMException('Blocked', 'SecurityError') })
+    try {
+      await auth.initialize()
+      expect(auth.stage.value).toBe('initialization-error')
+      expect(auth.initializationError.value).toContain('无法保存登录状态')
+      expect(client.auth.getSession).not.toHaveBeenCalled()
+    } finally { blocked.mockRestore() }
+  })
+
   it('bounds a stuck SDK session read without expiring the UI before its refresh retry budget', async () => {
     const { auth, client } = fixture()
     client.auth.getSession.mockReturnValue(new Promise(() => {}))
@@ -396,12 +407,13 @@ describe('shared auth session', () => {
   })
 
   it('cancels a pending query on logout and ignores its late response', async () => {
-    const { auth, read, signals } = fixture(accountA)
+    const { auth, client, read, signals } = fixture(accountA)
     await auth.initialize()
     const oldRead = deferred<ReturnType<typeof paired>>()
     read.mockReturnValueOnce(oldRead.promise)
     const refreshing = auth.refreshMembership()
     await auth.signOut()
+    expect(client.auth.signOut).toHaveBeenCalledWith({ scope: 'local' })
     expect(signals[1]?.aborted).toBe(true)
     oldRead.resolve(paired())
     await refreshing
@@ -411,13 +423,26 @@ describe('shared auth session', () => {
     expect(auth.authRedirect('/')).toBe('/login')
   })
 
-  it('restores session events after a failed logout', async () => {
+  it('stays signed out when the SDK cleared the local session but remote revocation failed', async () => {
+    const { auth, client, emit } = fixture(accountA)
+    await auth.initialize()
+    client.auth.signOut.mockImplementationOnce(async () => {
+      emit('SIGNED_OUT', null)
+      return { error: new Error('network failed') }
+    })
+    await expect(auth.signOut()).resolves.toBeUndefined()
+    expect(auth.user.value).toBeNull()
+    expect(auth.stage.value).toBe('signed-out')
+    expect(auth.authError.value).toContain('已退出本设备')
+  })
+
+  it('keeps listening after logout fails before the SDK removes its session', async () => {
     const { auth, client, emit } = fixture(accountA)
     await auth.initialize()
     client.auth.signOut.mockResolvedValueOnce({ error: new Error('network failed') })
     await expect(auth.signOut()).rejects.toThrow('network failed')
     expect(auth.user.value?.id).toBe(accountA.id)
-    expect(client.auth.onAuthStateChange).toHaveBeenCalledTimes(2)
+    expect(client.auth.onAuthStateChange).toHaveBeenCalledTimes(1)
     emit('SIGNED_OUT', null)
     expect(auth.user.value).toBeNull()
     expect(auth.stage.value).toBe('signed-out')

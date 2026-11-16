@@ -18,7 +18,7 @@ function session(expired: boolean) {
 
 async function flush() { for (let n = 0; n < 60; n++) await Promise.resolve() }
 
-function setup(delayMs: number, failFirst = false) {
+function setup(delayMs: number, failFirst = false, refreshFailure?: 'html' | 'invalid' | 'offline') {
   vi.useFakeTimers()
   localStorage.setItem(storageKey, JSON.stringify(session(true)))
   let refreshes = 0
@@ -27,6 +27,9 @@ function setup(delayMs: number, failFirst = false) {
     expect(url.origin).toBe(window.location.origin)
     if (url.pathname.endsWith('/auth/v1/token')) {
       refreshes++
+      if (refreshFailure === 'html') return new Response('<html>Page not found</html>', { status: 404, headers: { 'content-type': 'text/html' } })
+      if (refreshFailure === 'invalid') return new Response(JSON.stringify({ code: 'refresh_token_not_found', msg: 'Invalid Refresh Token' }), { status: 400, headers: { 'content-type': 'application/json' } })
+      if (refreshFailure === 'offline') throw new TypeError('Simulated offline connection')
       if (failFirst && refreshes === 1) throw new TypeError('Simulated offline connection')
       await new Promise(resolve => setTimeout(resolve, delayMs))
       return new Response(JSON.stringify(session(false)), { headers: { 'content-type': 'application/json' } })
@@ -55,6 +58,36 @@ afterEach(async () => {
 })
 
 describe('expired-session recovery with the real Supabase SDK', () => {
+  it('preserves the session on a gateway HTML 404 and offers recovery instead of requiring a new login', async () => {
+    const { auth } = setup(0, false, 'html')
+    const initializing = auth.initialize()
+    await flush()
+    await vi.advanceTimersByTimeAsync(45_000)
+    await initializing
+    expect(localStorage.getItem(storageKey)).toBeTruthy()
+    expect(auth.stage.value).toBe('initialization-error')
+    expect(auth.initializationError.value).not.toBe('')
+  })
+
+  it('preserves an expired session when refresh cannot reach the network', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { auth } = setup(0, false, 'offline')
+    const initializing = auth.initialize()
+    await flush()
+    await vi.advanceTimersByTimeAsync(45_000)
+    await initializing
+    expect(localStorage.getItem(storageKey)).toBeTruthy()
+    expect(auth.stage.value).toBe('initialization-error')
+  })
+
+  it('still removes a genuinely revoked refresh token and requires authentication', async () => {
+    const { auth } = setup(0, false, 'invalid')
+    await auth.initialize()
+    expect(localStorage.getItem(storageKey)).toBeNull()
+    expect(auth.user.value).toBeNull()
+    expect(auth.stage.value).toBe('signed-out')
+  })
+
   it('recovers a refresh slower than eight seconds through the relay without blocking login permanently', async () => {
     const { auth, request } = setup(9000)
     const initializing = auth.initialize()
