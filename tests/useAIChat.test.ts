@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, ref, type EffectScope } from 'vue'
 import { useAIChat } from '../app/composables/useAIChat'
+import { CHAT_REPLY_LIMIT, LOCAL_CHAT_REPLIES, crisisChatReply } from '../shared/utils/aiChat'
 
 let scope: EffectScope
 const user = ref<{ id: string } | null>({ id: 'user-a' })
@@ -27,6 +28,47 @@ beforeEach(() => {
 afterEach(() => { scope?.stop(); vi.useRealTimers(); vi.unstubAllGlobals() })
 
 describe('useAIChat streaming state', () => {
+  it('keeps paragraph breaks and carries replies longer than 50 characters into the next turn', async () => {
+    const reply = '今天听起来真的很辛苦，你不用急着让自己马上好起来。\n\n大毛认真听着。想说的话可以慢慢整理，先歇一会儿也没关系，不需要为了陪我聊天勉强自己。'
+    request.mockResolvedValueOnce(new Response(new ReadableStream({ start(controller) {
+      controller.enqueue(frame({ type: 'delta', text: reply }))
+      controller.enqueue(frame({ type: 'done', summary: '', trimmedCount: 0 })); controller.close()
+    } }), { headers: { 'Content-Type': 'text/event-stream' } }))
+    const chat = setup()
+    await chat.sendMessage('今天很累')
+    expect(chat.messages.value.at(-1)).toMatchObject({ content: reply, status: 'complete', source: 'ai' })
+    await chat.sendMessage('想再说一会儿')
+    expect(JSON.parse(request.mock.calls[1]![1].body).recentMessages[1].content).toBe(reply)
+  })
+
+  it('uses an honest safety-oriented local fallback for explicit crisis language when AI is unavailable', async () => {
+    request.mockRejectedValueOnce(new TypeError('Offline'))
+    const chat = setup()
+    await chat.sendMessage('我不想活了')
+    expect(chat.messages.value.at(-1)).toMatchObject({ source: 'local', status: 'complete' })
+    expect(chat.messages.value.at(-1)?.content).toContain('当地紧急服务')
+    expect(chat.messages.value.at(-1)?.content).toContain('信任的人')
+    expect(chat.recentMessages.value).toEqual([])
+  })
+
+  it('keeps a safety notice if a crisis response is interrupted after a partial delta', async () => {
+    request.mockResolvedValueOnce(new Response(new ReadableStream({ start(controller) {
+      controller.enqueue(frame({ type: 'delta', text: '我会认真听你说。' })); controller.close()
+    } }), { headers: { 'Content-Type': 'text/event-stream' } }))
+    const chat = setup()
+    await chat.sendMessage('我想伤害自己')
+    expect(chat.messages.value.at(-1)?.status).toBe('partial')
+    expect(chat.notice.value).toContain('当地紧急服务')
+    expect(chat.recentMessages.value).toEqual([])
+  })
+
+  it('keeps local fallback text bounded and avoids treating ordinary frustration or a negation as a crisis', () => {
+    expect(LOCAL_CHAT_REPLIES.every(reply => [...reply].length <= CHAT_REPLY_LIMIT)).toBe(true)
+    expect(LOCAL_CHAT_REPLIES.some(reply => reply.includes('笨'))).toBe(false)
+    expect(crisisChatReply('这个报错让我笑死了')).toBeUndefined()
+    expect(crisisChatReply('我不想自杀，只是想聊聊')).toBeUndefined()
+  })
+
   it('uses same-origin authenticated fetch and passes previous turns without storing them', async () => {
     const chat = setup()
     await chat.sendMessage('你好')

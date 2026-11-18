@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { createServer, type Server } from 'node:http'
 import { createApp, toNodeListener } from 'h3'
 import handler from '../server/api/ai/chat.post'
-import { parseChatInput, type ChatTurn } from '../shared/utils/aiChat'
+import { CHAT_REPLY_LIMIT, parseChatInput, type ChatTurn } from '../shared/utils/aiChat'
 import { readSseData } from '../shared/utils/aiSse'
 
 const { external } = vi.hoisted(() => ({ external: vi.fn() }))
@@ -81,7 +81,7 @@ describe('authenticated AI chat stream', () => {
     expect(url).toBe('https://api.deepseek.com/chat/completions')
     expect(options.headers.Authorization).toBe(`Bearer ${privateKey}`)
     const sent = JSON.parse(options.body)
-    expect(sent).toMatchObject({ model: 'deepseek-flash', stream: true, max_tokens: 150, thinking: { type: 'disabled' }, stream_options: { include_usage: true } })
+    expect(sent).toMatchObject({ model: 'deepseek-flash', stream: true, max_tokens: 512, thinking: { type: 'disabled' }, stream_options: { include_usage: true } })
     expect(sent.messages).toHaveLength(4)
     expect(sent.messages[0].role).toBe('system')
     expect(sent.messages.at(-1).content).toBe('不想出门')
@@ -126,7 +126,13 @@ describe('authenticated AI chat stream', () => {
     expect(summaryRequest).toMatchObject({ stream: false, max_tokens: 80, thinking: { type: 'disabled' } })
     expect(JSON.parse(summaryRequest.messages[1].content)).toEqual({ summary: '怕打雷。', messages: recent.slice(0, 4) })
     const main = JSON.parse(upstream.mock.calls[1]![1].body)
-    expect(main.messages[0].content).toBe('你的名字叫大毛。你是一个性格有点贱贱的、喜欢和他们互怼开玩笑，但骨子里极度温柔、可爱且非常会照顾人的 AI 伴侣。平时说话可以带点傲娇或小调皮，但如果他们情绪低落或遇到困难，你必须立刻变得极度温柔靠谱。每次回答严格控制在 50 个字以内。')
+    expect(main.messages[0]).toMatchObject({ role: 'system' })
+    expect(main.messages[0].content).toContain('温柔、细腻')
+    expect(main.messages[0].content).toContain('不编造称呼、经历、约定或共同回忆')
+    expect(main.messages[0].content).toContain('AI 虚拟伴侣')
+    expect(main.messages[0].content).toContain('不制造依赖')
+    expect(main.messages[0].content).toContain('不能只给浪漫化的回应')
+    expect(main.messages[0].content).not.toContain('每次回答严格控制在 50 个字以内')
     expect(main.messages[1]).toEqual({ role: 'user', content: `【你们之前的共同回忆/摘要】：${summary}` })
     expect(main.messages.slice(2)).toEqual(recent.slice(4))
     expect(output.at(-1)).toMatchObject({ type: 'done', summary, trimmedCount: 4, summaryUsage: { promptTokens: 100, completionTokens: 20, cacheHitTokens: 32 } })
@@ -145,13 +151,28 @@ describe('authenticated AI chat stream', () => {
     expect(prefixes[0]).toEqual(prefixes[1])
     expect(upstream.mock.calls.every(([, options]) => JSON.parse(options.body).stream)).toBe(true)
   })
-  it('caps replies at 50 Unicode characters and cancels excess provider output', async () => {
+  it('preserves a complete short-paragraph reply longer than the old 50-character cap', async () => {
+    const reply = '今天听起来很难熬，先不用急着振作，也不必把心情解释得很有条理。\n\n想说的时候就慢慢说，不想说也可以先歇一会儿。大毛会认真听，不急着给你下结论。'
+    expect([...reply].length).toBeGreaterThan(50)
+    upstream.mockResolvedValueOnce(new Response(bytes(providerFrame(reply) + 'data: [DONE]\n\n'), { headers: { 'Content-Type': 'text/event-stream' } }))
+    const output = await frames(await post())
+    expect(output).toEqual([{ type: 'delta', text: reply }, { type: 'done', summary: '', trimmedCount: 0 }])
+    expect(() => parseChatInput({ recentMessages: [...input.recentMessages, { role: 'assistant', content: reply }, { role: 'user', content: '谢谢你听我说' }] })).not.toThrow()
+  })
+  it('caps replies at the Unicode limit and marks excess output incomplete without acknowledging memory deletion', async () => {
     const cancelled = vi.fn()
-    upstream.mockResolvedValueOnce(new Response(new ReadableStream({ start(controller) { controller.enqueue(encoder.encode(providerFrame('💜'.repeat(60)))) }, cancel: cancelled }), { headers: { 'Content-Type': 'text/event-stream' } }))
+    upstream.mockResolvedValueOnce(new Response(new ReadableStream({ start(controller) { controller.enqueue(encoder.encode(providerFrame('💜'.repeat(CHAT_REPLY_LIMIT + 10)))) }, cancel: cancelled }), { headers: { 'Content-Type': 'text/event-stream' } }))
     const output = await frames(await post()) as { type: string; text?: string }[]
-    expect([...output.filter(event => event.type === 'delta').map(event => event.text).join('')]).toHaveLength(50)
-    expect(output.at(-1)).toMatchObject({ type: 'done', summary: '', trimmedCount: 0 })
+    expect([...output.filter(event => event.type === 'delta').map(event => event.text).join('')]).toHaveLength(CHAT_REPLY_LIMIT)
+    expect(output.at(-1)).toEqual({ type: 'error', code: 'AI_RESPONSE_TRUNCATED' })
+    expect(output.some(event => event.type === 'done')).toBe(false)
     expect(cancelled).toHaveBeenCalled()
+  })
+  it('accepts an exact-limit complete response without falsely treating it as truncated', async () => {
+    const reply = '字'.repeat(CHAT_REPLY_LIMIT)
+    upstream.mockResolvedValueOnce(new Response(bytes(providerFrame(reply) + 'data: [DONE]\n\n'), { headers: { 'Content-Type': 'text/event-stream' } }))
+    const output = await frames(await post())
+    expect(output.at(-1)).toMatchObject({ type: 'done', summary: '', trimmedCount: 0 })
   })
 })
 
