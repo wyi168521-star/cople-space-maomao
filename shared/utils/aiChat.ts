@@ -12,7 +12,9 @@ export const CHAT_HISTORY_LIMIT = CHAT_WINDOW_LIMIT + 1
 export const CHAT_SUMMARIZE_COUNT = 4
 export const CHAT_SUMMARY_LIMIT = 50
 export const CHAT_CONTEXT_LIMIT = 16000
-export const CHAT_REPLY_LIMIT = 50
+// 日常仍保持短段；为情绪回应和必要的安全提示留出空间。
+export const CHAT_REPLY_LIMIT = 300
+export const CHAT_REPLY_TOKEN_LIMIT = 512
 
 export function parseChatInput(value: unknown): ChatInput {
   if (!value || typeof value !== 'object') throw new Error('请提交对话内容。')
@@ -67,7 +69,13 @@ export function chatNotice(code: string) {
 }
 
 export const LOCAL_CHAT_REPLIES = [
-  '哼，才不是特意等你。今天累不累？过来，大毛先给你一个抱抱。',
-  '嘴上说你笨，心里可护着你呢。慢慢说，大毛认真听着。',
-  '别一个人硬扛啦。先喝口水，剩下的我们一点点来，好不好？',
+  '大毛在这里。想说的话可以慢慢说，不用急着整理好，也不用担心说得不够清楚。',
+  '想聊就聊，不想说话也可以安静一会儿。你不用为了照顾我的感受，勉强自己陪聊。',
+  '开心的小事，或是还没理顺的心情，都可以慢慢放下来。我会认真听，不急着给你下结论。',
 ]
+
+/** 仅用于断线兜底的明确危机短语，不是完整的风险识别或诊断系统。 */
+export function crisisChatReply(content: string): string | undefined {
+  if (!/我想自杀|我要自杀|我准备自杀|我打算自杀|我正在自残|我想伤害自己|我准备伤害自己|不想活了|我想杀人|我要杀人/.test(content)) return
+  return '这些话我会认真对待，你此刻的安全最要紧。\n\n如果你现在有伤害自己或他人的打算，先停下手边的行动，远离可能造成伤害的物品。请马上联系信任的人或当地紧急服务，说明情况并寻求现场帮助。这里暂时无法连接实时 AI 服务，不要只在聊天窗口里等。'
+}

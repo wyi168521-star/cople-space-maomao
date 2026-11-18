@@ -30,6 +30,35 @@ describe('Supabase client factory', () => {
     expect(fetchMock).toHaveBeenCalledWith('https://example.supabase.co', expect.objectContaining({ headers: { 'x-name': encodeURIComponent('你好') }, signal: expect.any(AbortSignal) }))
   })
 
+  it('reports unavailable browser storage instead of silently using a memory-only session', () => {
+    createSupabaseClient({ url: 'https://example.supabase.co', anonKey: 'public-test-key', isClient: true })
+    const options = createClient.mock.calls[0]?.[2] as { auth: { storage?: Storage } }
+    expect(options.auth.storage).toBeDefined()
+    vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => { throw new DOMException('Blocked', 'SecurityError') })
+    expect(() => options.auth.storage!.getItem('test-key')).toThrow('无法保存登录状态')
+  })
+
+  it('keeps a gateway HTML error retryable during refresh instead of treating it as invalid credentials', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('<html>Page not found</html>', {
+      status: 404, headers: { 'content-type': 'text/html' },
+    })))
+    createSupabaseClient({ url: 'https://example.supabase.co', anonKey: 'public-test-key', isClient: true })
+    const options = createClient.mock.calls[0]?.[2] as { global: { fetch: typeof fetch } }
+    const response = await options.global.fetch('https://example.supabase.co/auth/v1/token?grant_type=refresh_token', { method: 'POST' })
+    expect(response.status).toBe(503)
+    expect(response.headers.get('content-type')).toContain('application/json')
+  })
+
+  it('does not hide a genuine JSON rejection of an invalid refresh token', async () => {
+    const rejected = new Response(JSON.stringify({ code: 'refresh_token_not_found', msg: 'Invalid Refresh Token' }), {
+      status: 400, headers: { 'content-type': 'application/json' },
+    })
+    vi.stubGlobal('fetch', vi.fn(async () => rejected))
+    createSupabaseClient({ url: 'https://example.supabase.co', anonKey: 'public-test-key', isClient: true })
+    const options = createClient.mock.calls[0]?.[2] as { global: { fetch: typeof fetch } }
+    expect(await options.global.fetch('https://example.supabase.co/auth/v1/token?grant_type=refresh_token', { method: 'POST' })).toBe(rejected)
+  })
+
   it.each(['caller', 'deadline'] as const)('cancels a waiting network request when its %s aborts', async (source) => {
     const caller = new AbortController()
     const deadline = new AbortController()

@@ -1,6 +1,7 @@
 import { computed } from 'vue'
 import type { User } from '@supabase/supabase-js'
 import { buildPairingInvite, inviteAuthPath } from '../utils/pairingInvite'
+import { assertSupabaseSessionStorage } from '../lib/supabase'
 
 export type CoupleStage = 'signed-out' | 'awaiting-confirmation' | 'unpaired' | 'paired' | 'membership-error' | 'initialization-error'
 export type OAuthProvider = 'google' | 'github'
@@ -112,6 +113,9 @@ export function useCoupleAuth() {
   }
 
   function errorMessage(error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'AuthRetryableFetchError') {
+      return '登录服务暂时无法连接，请检查网络或部署配置后重试'
+    }
     return error && typeof error === 'object' && 'message' in error
       ? String(error.message)
       : '操作失败，请稍后重试'
@@ -290,8 +294,9 @@ export function useCoupleAuth() {
     sessionRuntime.initialization = task
     task.promise = (async () => {
       try {
-        subscribeToSession()
         const client = requireClient()
+        assertSupabaseSessionStorage()
+        subscribeToSession()
         const eventRevision = sessionRuntime.authEventRevision
         diagnostic('getSession:start', { generation })
         const request = boundedTask(() => client.auth.getSession(), '登录状态恢复超时，登录服务响应较慢或当前网络暂时无法连接', undefined, SESSION_DEADLINE_MS)
@@ -322,7 +327,7 @@ export function useCoupleAuth() {
           // Retry, logout and disposal explicitly retire its generation.
           invalidateMembership()
           const detail = errorMessage(error).replace(/[。.!！]+$/, '')
-          initializationError.value = `无法恢复登录状态：${detail}。请重新检查登录状态；若持续失败，可清除本机登录状态后重新登录。`
+          initializationError.value = `无法恢复登录状态：${detail}。请检查网络后重新检查登录状态，无需立即清除本机登录信息。`
           authError.value = initializationError.value
           stage.value = 'initialization-error'
         }
@@ -456,16 +461,18 @@ export function useCoupleAuth() {
     return withAction(async () => {
       const intent = ++sessionRuntime.authIntent
       cancelInitialization()
-      stopSessionListener()
       invalidateMembership()
       try {
-        const { error } = await requireClient().auth.signOut()
+        // 普通退出只撤销当前设备的会话，不能让其他设备也被迫重新登录。
+        // 保留监听器：SDK 可能已清除本机会话，但远端撤销请求随后失败。
+        const { error } = await requireClient().auth.signOut({ scope: 'local' })
         if (sessionRuntime.authIntent !== intent) throw new Error('登录会话已变化，请重新操作')
-        if (error) throw error
+        if (error && user.value) throw error
         applyUser(null)
         initializationError.value = ''
         initialized.value = true
         demoMode.value = false
+        if (error) authError.value = '已退出本设备，但服务器注销暂未确认；请在网络恢复后再登录。'
       } finally {
         // A network failure must not silently disconnect an otherwise valid session.
         if (sessionRuntime.authIntent === intent && !initializationError.value) subscribeToSession()

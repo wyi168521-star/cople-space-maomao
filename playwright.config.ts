@@ -1,16 +1,18 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const externalBaseUrl = process.env.PLAYWRIGHT_BASE_URL
+
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 30_000,
   use: {
-    baseURL: 'http://127.0.0.1:3200',
+    baseURL: externalBaseUrl || 'http://127.0.0.1:3200',
     trace: 'retain-on-failure',
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
       : undefined,
   },
-  webServer: {
+  webServer: externalBaseUrl ? undefined : {
     command: 'npm run dev',
     url: 'http://127.0.0.1:3200',
     reuseExistingServer: true,

@@ -103,7 +103,7 @@ onBeforeUnmount(() => {
             <span v-else>这次回复已暂停。</span>
             <span v-if="message.content && message.status === 'streaming'" class="ai-chat__cursor" aria-hidden="true" />
           </p>
-          <span v-if="message.source === 'local'" class="ai-chat__label">本地暖心回复</span>
+          <span v-if="message.source === 'local'" class="ai-chat__label">本地备用回复</span>
           <span v-else-if="message.status === 'stopped' || message.status === 'partial'" class="ai-chat__label">{{ message.status === 'stopped' ? '已暂停' : '回复未完成' }}</span>
         </article>
       </div>

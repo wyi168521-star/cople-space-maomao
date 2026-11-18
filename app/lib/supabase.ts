@@ -10,6 +10,39 @@ export type SupabaseClientConfig = {
   isClient: boolean
 }
 
+const SESSION_STORAGE_ERROR = '此浏览器无法保存登录状态，请允许本站使用本地存储，并检查浏览器的数据清理设置后重试。'
+
+/** 不保存密码，也不管理令牌；会话的读写和刷新仍完全交给 Supabase SDK。 */
+function browserSessionStorage() {
+  return {
+    getItem(key: string) {
+      try { return window.localStorage.getItem(key) }
+      catch { throw new Error(SESSION_STORAGE_ERROR) }
+    },
+    setItem(key: string, value: string) {
+      try { window.localStorage.setItem(key, value) }
+      catch { throw new Error(SESSION_STORAGE_ERROR) }
+    },
+    removeItem(key: string) {
+      try { window.localStorage.removeItem(key) }
+      catch { throw new Error(SESSION_STORAGE_ERROR) }
+    },
+  }
+}
+
+/** SDK 的默认策略可能退回内存存储；这里让不可持久化成为可见、可重试的错误。 */
+export function assertSupabaseSessionStorage(): void {
+  if (typeof window === 'undefined') return
+  // 只是无敏感内容的探测键，不依赖仅在安全上下文可用的 crypto.randomUUID。
+  const key = `love-auth-storage-check-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  try {
+    const storage = browserSessionStorage()
+    storage.setItem(key, '1')
+    if (storage.getItem(key) !== '1') throw new Error(SESSION_STORAGE_ERROR)
+    storage.removeItem(key)
+  } catch { throw new Error(SESSION_STORAGE_ERROR) }
+}
+
 function asciiHeaderValue(value: unknown) {
   const text = String(value ?? '')
   return Array.from(text, character => character.charCodeAt(0) > 0xff ? encodeURIComponent(character) : character).join('')
@@ -34,13 +67,27 @@ async function safeFetch(input: RequestInfo | URL, init?: RequestInit, timeoutMs
   }
   const address = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
   let path = ''
-  try { path = new URL(address).pathname } catch { path = '(relative request)' }
+  let refreshRequest = false
+  try {
+    const url = new URL(address)
+    path = url.pathname
+    refreshRequest = /\/auth\/v1\/token$/.test(path) && url.searchParams.get('grant_type') === 'refresh_token'
+  } catch { path = '(relative request)' }
   const started = Date.now()
   // 不输出 URL 查询参数、请求头、请求体或会话对象。
   if (import.meta.dev) console.info('[LoveSupabase] request start', { method: options.method || 'GET', path })
   try {
     const response = await fetch(input, options)
     if (import.meta.dev) console.info('[LoveSupabase] response', { path, status: response.status, elapsedMs: Date.now() - started })
+    // CDN/静态托管的 HTML 错误页不是 Auth 对 refresh token 的有效裁决。
+    // SDK 会把普通 4xx 当成令牌失效并清会话；503 允许它沿用既有重试机制。
+    // 真正的 Supabase JSON 错误保持原样，撤销或过期的会话仍须重新登录。
+    if (refreshRequest && /\btext\/html\b/i.test(response.headers.get('content-type') || '')) {
+      void response.body?.cancel().catch(() => {})
+      return new Response(JSON.stringify({ code: 'auth_service_unavailable', msg: '登录服务暂时不可用，请检查网络或部署配置后重试。' }), {
+        status: 503, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
+      })
+    }
     return response
   } catch (error) {
     if (import.meta.dev) console.warn('[LoveSupabase] request failed', { path, elapsedMs: Date.now() - started, reason: deadline.aborted ? 'timeout' : sourceSignal?.aborted ? 'cancelled' : 'network' })
@@ -87,6 +134,8 @@ export function createSupabaseClient({ url, anonKey, isClient }: SupabaseClientC
       persistSession: isClient,
       autoRefreshToken: isClient,
       detectSessionInUrl: isClient,
+      // 显式提供 SDK 支持的适配器，避免浏览器拒绝存储时静默退回内存。
+      ...(isClient ? { storage: browserSessionStorage() } : {}),
     },
   })
   return Object.assign(client, { resumableUploadUrl: `${url.replace(/\/$/, '')}/storage/v1/upload/resumable` })

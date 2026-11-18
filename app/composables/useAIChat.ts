@@ -1,5 +1,5 @@
 import { computed, getCurrentScope, onScopeDispose, reactive, readonly, ref, watch } from 'vue'
-import { CHAT_REPLY_LIMIT, CHAT_USER_LIMIT, CHAT_SUMMARY_LIMIT, CHAT_SUMMARIZE_COUNT, CHAT_WINDOW_LIMIT, LOCAL_CHAT_REPLIES, chatNotice, parseChatInput, type ChatTurn } from '#shared/utils/aiChat'
+import { CHAT_REPLY_LIMIT, CHAT_USER_LIMIT, CHAT_SUMMARY_LIMIT, CHAT_SUMMARIZE_COUNT, CHAT_WINDOW_LIMIT, LOCAL_CHAT_REPLIES, chatNotice, crisisChatReply, parseChatInput, type ChatTurn } from '#shared/utils/aiChat'
 import { readSseData } from '#shared/utils/aiSse'
 
 export type CompanionMessage = {
@@ -113,12 +113,14 @@ export function useAIChat() {
     } catch (error) {
       if (!active() || (controller.signal.aborted && !timedOut)) return
       notice.value = chatNotice(timedOut ? 'AI_TIMEOUT' : error instanceof Error ? error.message : 'AI_UNAVAILABLE')
+      const safetyReply = crisisChatReply(content)
       if (reply.content.trim()) {
         // 保留已收到的真实文字，不把中断伪装成完整回答。
         reply.status = 'partial'
         notice.value += ' 已收到的内容为未完成回复。'
+        if (safetyReply) notice.value += ` ${safetyReply}`
       } else {
-        reply.content = LOCAL_CHAT_REPLIES[Math.floor(sequence / 2 - 1) % LOCAL_CHAT_REPLIES.length]!
+        reply.content = safetyReply || LOCAL_CHAT_REPLIES[Math.floor(sequence / 2 - 1) % LOCAL_CHAT_REPLIES.length]!
         reply.source = 'local'; reply.status = 'complete'
       }
     } finally {
