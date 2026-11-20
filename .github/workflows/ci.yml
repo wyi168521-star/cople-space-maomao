@@ -31,3 +31,11 @@ jobs:
 
       - name: Generate production site
         run: npm run generate
+
+      - name: Build Cloudflare Pages server and assets
+        run: npm run build:cloudflare
+
+      - name: Verify server output
+        run: |
+          test -s dist/_worker.js/index.js
+          test -s dist/_routes.json
